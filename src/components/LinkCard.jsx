@@ -65,7 +65,7 @@ const LinkCard = ({ id, title, url, icon, skin = 'standard' }) => {
         // Fallback Standard
         return {
             background: 'rgba(255,255,255,0.08)',
-            backdropFilter: 'blur(15px)',
+            // backdropFilter: 'blur(15px)', // DISABLED FOR PERFORMANCE
             border: '1.5px solid rgba(255,255,255,0.15)',
             borderRadius: '20px',
             padding: cardPadding,

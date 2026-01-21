@@ -130,14 +130,14 @@ const Home = () => {
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
-                    background: 'rgba(0,0,0,0.6)',
-                    backdropFilter: 'blur(20px)',
+                    background: 'rgba(0,0,0,0.85)', // Darker, solid-ish background without blur
+                    // backdropFilter: 'blur(20px)', // DISABLED FOR PERFORMANCE
                     padding: '0.8rem 1.2rem',
                     borderRadius: '16px',
                     border: '1px solid rgba(255,255,255,0.1)',
-                    boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
                     width: '95%',
-                    maxWidth: '460px', // Slightly less than container
+                    maxWidth: '460px',
                     transition: 'transform 0.3s ease-in-out'
                 }}>
                     <Link to="/" style={{
@@ -193,8 +193,8 @@ const Home = () => {
                     alignItems: 'center',
                     gap: '24px',
                     textAlign: 'center',
-                    background: 'rgba(0,0,0,0.4)',
-                    backdropFilter: 'blur(10px)',
+                    background: 'rgba(0,0,0,0.9)', // Solid dark background
+                    // backdropFilter: 'blur(10px)', // DISABLED FOR PERFORMANCE
                     borderRadius: '24px',
                     border: '1.5px solid rgba(255,255,255,0.1)',
                     boxShadow: '0 10px 40px rgba(0,0,0,0.4)',

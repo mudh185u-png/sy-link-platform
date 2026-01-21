@@ -28,6 +28,11 @@ const AnimatedBackground = ({ type, config, skin }) => {
         return STATIC_PARTICLES.slice(0, 100);
     }, [isWinter]);
 
+    // OPTIMIZATION: On mobile/performance mode, simplify complex backgrounds
+    // For now, we are enforcing strictly lightweight CSS for commonly used types if they are causing lag.
+
+    // Fallback for heavy "animated" type to simple gradient if needed by CSS overrides, 
+    // but here we render the DOM. The parent can control visibility.
     return (
         <div
             data-editable-id="site_background"
@@ -37,31 +42,33 @@ const AnimatedBackground = ({ type, config, skin }) => {
                 inset: 0,
                 zIndex: -1,
                 overflow: 'hidden',
-                /* Center background content if any */
                 display: 'flex',
                 justifyContent: 'center',
                 alignItems: 'center',
-                /* DARK WINTER NIGHT GRADIENT: EXACTLY MATCHING REFERENCE */
                 background: isSocial ? '#000' : (isGaming ? '#020308' : (isWinter ? 'linear-gradient(to bottom, #050a15 0%, #0a1525 100%)' : (isLuxury ? '#080808' : '#08080f'))),
                 pointerEvents: 'none'
             }}>
+            {/* 
+                    PERFORMANCE HACK:
+                    If 'isWinter', 'isGaming', or 'isSocial' are active, we render them BUT
+                    we must be careful. The user complained about lag.
+                    We will REDUCE the particle count for winter significantly.
+                */}
             {type === 'image' && settings?.url && (
                 <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${settings.url})`, backgroundSize: 'cover', backgroundPosition: 'center', zIndex: -2 }} />
             )}
 
-            {/* DARK WINTER SPECIFIC ATMOSPHERE */}
+            {/* DARK WINTER SPECIFIC ATMOSPHERE - REDUCED PARTICLES */}
             {isWinter && (
                 <>
-                    {/* Subtle Night Glow at the top */}
                     <div style={{
                         position: 'absolute',
                         top: 0, left: 0, right: 0, height: '40%',
                         background: 'radial-gradient(circle at 50% 0%, rgba(20, 40, 70, 0.4) 0%, transparent 70%)',
                         zIndex: 0
                     }} />
-
-                    {/* Falling Snow */}
-                    {snowParticles.map(p => (
+                    {/* Render fewer particles (20 instead of 100) */}
+                    {snowParticles.slice(0, 20).map(p => (
                         <motion.div
                             key={p.id}
                             initial={{ top: '-10%', left: p.left, opacity: 0 }}
@@ -82,7 +89,7 @@ const AnimatedBackground = ({ type, config, skin }) => {
                                 height: p.size,
                                 background: '#fff',
                                 borderRadius: '50%',
-                                filter: p.size > 2 ? 'blur(1px)' : 'blur(0.5px)',
+                                filter: 'blur(0px)', // Removed blur for performance
                                 zIndex: 1
                             }}
                         />
@@ -90,31 +97,21 @@ const AnimatedBackground = ({ type, config, skin }) => {
                 </>
             )}
 
-            {/* VOGUE: STAGE SPOTLIGHT & FILM GRAIN */}
+            {/* VOGUE: REDUCED ANIMATION COMPLEXITY */}
             {isSocial && (
                 <>
-                    <motion.div
-                        animate={{
-                            x: ['-50%', '50%', '-50%'],
-                            y: ['-50%', '50%', '-50%'],
-                        }}
-                        transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-                        style={{
-                            position: 'absolute',
-                            top: '50%', left: '50%', width: '150vh', height: '150vh',
-                            background: 'radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 60%)',
-                            transform: 'translate(-50%, -50%)',
-                            zIndex: 1
-                        }}
-                    />
                     <div style={{
                         position: 'absolute',
-                        inset: 0, opacity: 0.12, zIndex: 2, pointerEvents: 'none',
-                        backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`
+                        top: '50%', left: '50%', width: '100vw', height: '100vh',
+                        background: 'radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 60%)',
+                        transform: 'translate(-50%, -50%)',
+                        zIndex: 1
                     }} />
+                    {/* Removed the heavy animated overlay and noise filter */}
                 </>
             )}
 
+            {/* GAMING: STATIC GRID INSTEAD OF ANIMATED */}
             {isGaming && (
                 <>
                     <div style={{
@@ -127,19 +124,20 @@ const AnimatedBackground = ({ type, config, skin }) => {
                         transform: 'rotateX(60deg) translateY(-20%) scale(2.5)',
                         opacity: 0.3
                     }} />
-                    <motion.div
-                        animate={{ top: ['-20%', '120%'] }}
-                        transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
-                        style={{ position: 'absolute', left: 0, right: 0, height: '3px', background: 'linear-gradient(90deg, transparent, #00f2ff, transparent)', boxShadow: '0 0 30px #00f2ff', zIndex: 1, opacity: 0.2 }}
-                    />
+                    {/* Removed the scanning line animation */}
                 </>
             )}
 
+            {/* STANDARD BLOBS: REDUCED BLUR RADIUS */}
             {!isGaming && !isSocial && !isWinter && (
-                <motion.div
-                    animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
-                    transition={{ duration: 20, repeat: Infinity }}
-                    style={{ position: 'absolute', top: '15%', left: '15%', width: '400px', height: '400px', background: isLuxury ? 'rgba(212, 175, 55, 0.06)' : 'rgba(255, 45, 85, 0.08)', borderRadius: '50%', filter: 'blur(100px)' }}
+                <div
+                    style={{
+                        position: 'absolute', top: '15%', left: '15%',
+                        width: '300px', height: '300px',
+                        background: isLuxury ? 'rgba(212, 175, 55, 0.06)' : 'rgba(255, 45, 85, 0.08)',
+                        borderRadius: '50%',
+                        filter: 'blur(60px)' // Reduced from 100px
+                    }}
                 />
             )}
         </div>
