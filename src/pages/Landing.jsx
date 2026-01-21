@@ -17,10 +17,17 @@ const Landing = () => {
     const [scrolled, setScrolled] = useState(false)
 
     useEffect(() => {
+        let ticking = false;
         const handleScroll = () => {
-            setScrolled(window.scrollY > 50)
+            if (!ticking) {
+                window.requestAnimationFrame(() => {
+                    setScrolled(window.scrollY > 50)
+                    ticking = false;
+                });
+                ticking = true;
+            }
         }
-        window.addEventListener('scroll', handleScroll)
+        window.addEventListener('scroll', handleScroll, { passive: true })
         return () => window.removeEventListener('scroll', handleScroll)
     }, [])
 
@@ -34,7 +41,10 @@ const Landing = () => {
             overflowX: 'hidden',
             fontFamily: language === 'ar' ? 'Tajawal, sans-serif' : 'Outfit, sans-serif'
         }}>
-            <AnimatedBackground type="animated" config={{ color: '#ff2d55' }} />
+            {/* Background - Simplified for mobile/performance if needed */}
+            <div className="performance-bg">
+                <AnimatedBackground type="animated" config={{ color: '#ff2d55' }} />
+            </div>
 
             {/* NAVBAR */}
             <nav style={{
