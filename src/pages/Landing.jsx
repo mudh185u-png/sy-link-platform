@@ -41,9 +41,15 @@ const Landing = () => {
             overflowX: 'hidden',
             fontFamily: language === 'ar' ? 'Tajawal, sans-serif' : 'Outfit, sans-serif'
         }}>
-            {/* Background - Simplified for mobile/performance if needed */}
-            <div className="performance-bg">
-                <AnimatedBackground type="animated" config={{ color: '#ff2d55' }} />
+            {/* Background - Lightweight CSS Gradient (No heavy JS particles) */}
+            <div style={{
+                position: 'fixed', inset: 0, zIndex: -1,
+                background: 'linear-gradient(to bottom, #050510 0%, #1a1a2e 100%)'
+            }}>
+                <div style={{
+                    position: 'absolute', top: 0, left: 0, right: 0, height: '40%',
+                    background: 'radial-gradient(circle at 50% 0%, rgba(255, 45, 85, 0.15) 0%, transparent 70%)'
+                }} />
             </div>
 
             {/* NAVBAR */}
@@ -53,9 +59,7 @@ const Landing = () => {
                 left: 0,
                 right: 0,
                 height: '80px',
-                background: scrolled ? 'rgba(5, 5, 12, 0.8)' : 'transparent',
-                backdropFilter: scrolled ? 'blur(20px)' : 'none',
-                WebkitBackdropFilter: scrolled ? 'blur(20px)' : 'none',
+                background: scrolled ? '#05050C' : 'transparent', // Solid color, no blur
                 borderBottom: scrolled ? '1px solid rgba(255,255,255,0.05)' : 'none',
                 display: 'flex',
                 alignItems: 'center',
@@ -214,8 +218,7 @@ const Landing = () => {
                         overflow: 'hidden'
                     }}>
                         <div style={{
-                            position: 'absolute', top: '-50%', left: '50%', transform: 'translateX(-50%)',
-                            width: '60%', height: '100%', background: 'var(--accent-color)', filter: 'blur(150px)', opacity: 0.15
+                            width: '60%', height: '100%', background: 'var(--accent-color)', filter: 'blur(80px)', opacity: 0.15
                         }}></div>
 
                         <div style={{
