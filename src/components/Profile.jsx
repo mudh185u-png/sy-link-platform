@@ -151,7 +151,18 @@ const Profile = ({ profileData, skin = 'standard' }) => {
                     ...currentFrameStyle
                 }}>
                     {profile?.avatar_url ? (
-                        <img src={profile.avatar_url} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        profile.avatar_url.match(/\.(mp4|webm|mov)$/i) ? (
+                            <video
+                                src={profile.avatar_url}
+                                autoPlay
+                                loop
+                                muted
+                                playsInline
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            />
+                        ) : (
+                            <img src={profile.avatar_url} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        )
                     ) : (
                         <FaUserCircle size={150} color="rgba(255,255,255,0.01)" />
                     )}

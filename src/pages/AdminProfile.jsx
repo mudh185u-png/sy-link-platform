@@ -261,7 +261,18 @@ const AdminProfile = () => {
                     }}
                 >
                     {avatarUrl ? (
-                        <img src={avatarUrl} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        avatarUrl.match(/\.(mp4|webm|mov)$/i) ? (
+                            <video
+                                src={avatarUrl}
+                                autoPlay
+                                loop
+                                muted
+                                playsInline
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            />
+                        ) : (
+                            <img src={avatarUrl} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        )
                     ) : (
                         <FaUserCircle size={parseInt(getStyle('avatar_container', 'icon_size', 80))} color="rgba(255,255,255,0.1)" />
                     )}
@@ -274,7 +285,7 @@ const AdminProfile = () => {
                     </div>
                     {uploading && <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><div className="loading-spinner"></div></div>}
                 </div>
-                <input type="file" id="avatar-upload" hidden accept="image/*" onChange={uploadAvatar} disabled={uploading || isEditMode} />
+                <input type="file" id="avatar-upload" hidden accept="image/*,video/mp4,video/webm,video/quicktime" onChange={uploadAvatar} disabled={uploading || isEditMode} />
 
                 <h3 style={{
                     fontSize: getStyle('profile_name', 'font_size', '1.6rem'),
