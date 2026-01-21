@@ -1,0 +1,2 @@
+ALTER TABLE profiles
+ADD COLUMN IF NOT EXISTS enabled_skins JSONB;
