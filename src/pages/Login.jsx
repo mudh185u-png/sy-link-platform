@@ -99,18 +99,10 @@ const Login = () => {
     return (
         <div className={`min-h-screen w-full bg-[#030308] text-white overflow-hidden flex flex-col items-center justify-center relative ${isRtl ? 'rtl' : 'ltr'}`} style={{ fontFamily: isRtl ? 'Tajawal, sans-serif' : 'Outfit, sans-serif' }}>
             
-            {/* Background Blobs */}
+            {/* Background Blobs (Static to prevent mobile frame drops) */}
             <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-                <motion.div 
-                    animate={{ scale: [1, 1.2, 1], rotate: [0, 90, 0] }}
-                    transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                    className="absolute top-[-20%] left-[-10%] w-[50%] h-[60%] rounded-full bg-purple-600/20 blur-[120px]" 
-                />
-                <motion.div 
-                    animate={{ scale: [1, 1.5, 1], rotate: [0, -90, 0] }}
-                    transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-                    className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] rounded-full bg-rose-600/10 blur-[120px]" 
-                />
+                <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-purple-600/15 blur-[100px] transform translate-z-0" />
+                <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[50%] rounded-full bg-rose-600/10 blur-[100px] transform translate-z-0" />
             </div>
 
             {/* Top Navigation */}
