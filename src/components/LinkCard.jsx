@@ -11,7 +11,7 @@ const LinkCard = ({ id, title, url, icon, theme }) => {
             // --- SECURITY: Anti-Spam Click Tracking ---
             let visitorId = localStorage.getItem('visitor_id');
             if (!visitorId) {
-                visitorId = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2);
+                visitorId = (window.crypto && window.crypto.randomUUID) ? window.crypto.randomUUID() : Math.random().toString(36).substring(2);
                 localStorage.setItem('visitor_id', visitorId);
             }
 
