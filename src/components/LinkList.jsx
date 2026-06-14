@@ -53,7 +53,7 @@ const getIconComponent = (iconName) => {
     }
 };
 
-const LinkList = ({ userId, skin }) => {
+const LinkList = ({ userId, theme }) => {
     const { settings } = useAuth()
     const [links, setLinks] = useState([])
     const [error, setError] = useState(null)
@@ -84,33 +84,25 @@ const LinkList = ({ userId, skin }) => {
         fetchLinks()
     }, [userId])
 
-    if (error) return <div style={{ color: 'red', textAlign: 'center' }}>Error loading links: {error}</div>
+    if (error) return <div className="text-rose-500 font-bold text-center mt-4">Error loading links: {error}</div>
 
     const profileAds = (settings?.profile_ads || []).filter(ad => !ad.placement || ad.placement === 'profile');
 
     return (
-        <div style={{
-            width: '100%',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            maxWidth: '100%',
-            margin: '0 auto',
-            padding: '0'
-        }}>
+        <div className="w-full flex flex-col items-center max-w-full mx-auto px-2 sm:px-4">
             {links.map((link, index) => {
                 const adsToInject = profileAds.filter(ad => ad.active && ad.inject_index === index);
                 return (
                     <React.Fragment key={link.id}>
                         {adsToInject.map(ad => (
-                            <AdCard key={ad.id} ad={ad} skin={skin} />
+                            <AdCard key={ad.id} ad={ad} />
                         ))}
                         <LinkCard
                             id={link.id}
                             title={link.title}
                             url={link.url}
                             icon={getIconComponent(link.icon)}
-                            skin={skin}
+                            theme={theme}
                         />
                     </React.Fragment>
                 );
@@ -120,10 +112,10 @@ const LinkList = ({ userId, skin }) => {
             {profileAds
                 .filter(ad => ad.active && ad.inject_index >= links.length)
                 .map(ad => (
-                    <AdCard key={ad.id} ad={ad} skin={skin} />
+                    <AdCard key={ad.id} ad={ad} />
                 ))
             }
-        </div >
+        </div>
     )
 }
 

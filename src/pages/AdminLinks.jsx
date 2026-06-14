@@ -5,24 +5,16 @@ import { useLanguage } from '../contexts/LanguageContext'
 import {
     FaTrash, FaPlus, FaLink, FaCopy, FaCheck,
     FaMousePointer, FaEye, FaGlobe, FaEnvelope,
-    FaPlusCircle, FaSearch, FaEllipsisV
+    FaPlusCircle, FaSearch, FaEllipsisV, FaPencilAlt, FaChartLine
 } from 'react-icons/fa'
 import IconSelector from '../components/IconSelector'
 import { iconMap } from '../utils/iconMap'
 import AdminHeader from '../components/AdminHeader'
 import { getLocalizedTitle } from '../constants/translations'
-import { useTheme } from '../contexts/ThemeContext'
 
 const AdminLinks = () => {
     const { user } = useAuth()
     const { t, language } = useLanguage()
-    const { settings } = useTheme()
-
-    const getStyle = (sectionId, key, fallback) => {
-        return settings?.styles?.[sectionId]?.[key] !== undefined
-            ? settings.styles[sectionId][key]
-            : fallback
-    }
 
     const [links, setLinks] = useState([])
     const [loading, setLoading] = useState(true)
@@ -32,7 +24,7 @@ const AdminLinks = () => {
     const [title, setTitle] = useState('')
     const [url, setUrl] = useState('')
     const [icon, setIcon] = useState('FaGlobe')
-    const [editingId, setEditingId] = useState(null) // ID of link being edited
+    const [editingId, setEditingId] = useState(null)
     const [submitting, setSubmitting] = useState(false)
     const [showPanel, setShowPanel] = useState(false)
 
@@ -76,25 +68,45 @@ const AdminLinks = () => {
     const handleSubmit = async (e) => {
         e.preventDefault()
         if (!title || !url) return
+        
+        // --- SECURITY: XSS Protection & URL Validation ---
+        let safeUrl = url.trim();
+        try {
+            // Add https:// if it's just a raw domain like "example.com"
+            if (!safeUrl.match(/^https?:\/\//i) && !safeUrl.match(/^mailto:/i) && !safeUrl.match(/^tel:/i)) {
+                safeUrl = `https://${safeUrl}`;
+            }
+            
+            const parsedUrl = new URL(safeUrl);
+            const protocol = parsedUrl.protocol.toLowerCase();
+            
+            // Block dangerous protocols like javascript:
+            if (!['http:', 'https:', 'mailto:', 'tel:'].includes(protocol)) {
+                alert(language === 'ar' ? 'عذراً، هذا الرابط غير مدعوم أو غير آمن.' : 'Sorry, this link protocol is not supported or unsafe.');
+                return;
+            }
+        } catch (err) {
+            alert(language === 'ar' ? 'الرابط غير صحيح، يرجى التأكد من كتابته بشكل صحيح.' : 'Invalid URL. Please enter a valid web address.');
+            return;
+        }
+        // --------------------------------------------------
+
         setSubmitting(true)
 
         try {
             if (editingId) {
-                // Update existing
                 const { error } = await supabase
                     .from('links')
-                    .update({ title, url, icon })
+                    .update({ title, url: safeUrl, icon })
                     .eq('id', editingId)
 
                 if (error) throw error
 
-                setLinks(links.map(l => l.id === editingId ? { ...l, title, url, icon } : l))
-                alert(language === 'ar' ? 'تم تحديث الرابط بنجاح' : 'Link updated successfully')
+                setLinks(links.map(l => l.id === editingId ? { ...l, title, url: safeUrl, icon } : l))
             } else {
-                // Create new
                 const { data, error } = await supabase
                     .from('links')
-                    .insert([{ title, url, icon, user_id: user.id }])
+                    .insert([{ title, url: safeUrl, icon, user_id: user.id }])
                     .select()
 
                 if (error) throw error
@@ -129,464 +141,205 @@ const AdminLinks = () => {
         setTimeout(() => setCopiedId(null), 2000)
     }
 
-    // Helper to get skin styles for Admin View (Replicated from LinkCard)
-    const getSkinStyle = (linkSkin) => {
-        const s = linkSkin || 'standard';
-
-        if (s === 'syria') return {
-            /* SYRIA LIBERATION STYLE - PREMIUM REDESIGN */
-            background: 'linear-gradient(110deg, #000000 0%, #0a1f0a 60%, #002914 100%)',
-            backdropFilter: 'blur(12px)',
-            borderTop: '2px solid rgba(255,255,255,0.15)',
-            borderBottom: '2px solid rgba(255,255,255,0.15)',
-            borderRight: '6px solid #007A3D',
-            borderLeft: '6px solid #000',
-            borderRadius: '6px',
-            padding: '16px 24px',
-            boxShadow: '0 10px 30px rgba(0,0,0,0.6)',
-            position: 'relative',
-            overflow: 'hidden'
-        }
-        if (s === 'social') return { background: 'rgba(0,0,0,0.95)', border: '1px solid #fff', borderRadius: '2px' }
-
-        if (s === 'luxury') return { background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(212, 175, 55, 0.4)' }
-        if (s === 'gaming') return { background: 'rgba(2, 4, 12, 0.9)', border: '1px solid rgba(0, 242, 255, 0.2)', borderRadius: '0' }
-
-        return {} // Standard fallback handled by default styles
-    }
-
     if (loading) return (
         <div style={{ height: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <div className="loading-spinner"></div>
+            <div className="w-12 h-12 border-4 border-white/5 border-t-fuchsia-500 rounded-full animate-spin"></div>
         </div>
     )
 
     return (
-        <div style={{
-            width: '100%',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '1.25rem',
-            paddingBottom: '3rem',
-            animation: 'fadeInScale 0.6s cubic-bezier(0.23, 1, 0.32, 1) forwards'
-        }}>
-            <AdminHeader title={t.dashboardTitle} />
+        <div className="w-full flex flex-col gap-8 pb-24 animate-[fadeInScale_0.6s_cubic-bezier(0.23,1,0.32,1)_forwards]" style={{ direction: language === 'ar' ? 'rtl' : 'ltr' }}>
+            <AdminHeader title={t.dashboardTitle || 'Ecosystem'} />
 
             {/* Quick Actions Header */}
-            <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '0 5px'
-            }}>
+            <div className="flex justify-between items-center flex-wrap gap-4 px-2 sm:px-4">
                 <div>
-                    <h3 style={{ fontSize: '1.2rem', fontWeight: '900', color: '#fff' }}>
-                        {language === 'ar' ? 'روابطك' : 'Your Ecosystem'}
+                    <h3 className="text-xl sm:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-white/60 tracking-tight">
+                        {language === 'ar' ? 'إدارة الروابط' : 'Link Studio'}
                     </h3>
-                    <p style={{ fontSize: '0.75rem', opacity: 0.3, fontWeight: '500' }}>
-                        {links.length} {language === 'ar' ? 'رابط مفعل' : 'links active'}
-                    </p>
+                    <div className="flex items-center gap-2 mt-1">
+                        <div className="w-1.5 sm:w-2 h-1.5 sm:h-2 rounded-full bg-fuchsia-500 shadow-[0_0_8px_rgba(217,70,239,0.8)] animate-pulse"></div>
+                        <p className="text-[10px] sm:text-xs text-white/40 font-bold uppercase tracking-widest">
+                            {links.length} {language === 'ar' ? 'رابط مفعل' : 'active links'}
+                        </p>
+                    </div>
                 </div>
                 <button
                     onClick={() => {
                         if (showPanel && editingId) {
-                            resetForm() // Cancel edit
+                            resetForm()
                         } else {
                             setShowPanel(!showPanel)
                         }
                     }}
-                    style={{
-                        background: showPanel ? 'rgba(255,255,255,0.05)' : 'var(--accent-color)',
-                        color: '#fff',
-                        border: 'none',
-                        padding: '10px 18px',
-                        borderRadius: '14px',
-                        fontSize: '0.85rem',
-                        fontWeight: '800',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        cursor: 'pointer',
-                        transition: 'all 0.3s cubic-bezier(0.2, 1, 0.3, 1)',
-                        boxShadow: showPanel ? 'none' : '0 8px 20px rgba(255,45,85,0.2)'
-                    }}
+                    className={`flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl text-xs sm:text-sm font-black transition-all duration-300 shadow-xl ${
+                        showPanel 
+                        ? 'bg-[#111118] border border-white/10 text-white hover:border-white/20' 
+                        : 'bg-white text-black hover:scale-105 active:scale-95 shadow-[0_10px_30px_rgba(255,255,255,0.2)]'
+                    }`}
                 >
-                    {showPanel ? <FaPlus style={{ transform: 'rotate(45deg)' }} /> : <FaPlus />}
-                    {showPanel ? (language === 'ar' ? 'إغلاق' : 'Close') : (language === 'ar' ? 'إضافة رابط' : 'Add Link')}
+                    <FaPlus className={`transition-transform duration-300 ${showPanel ? 'rotate-45' : ''}`} />
+                    {showPanel ? (language === 'ar' ? 'إلغاء' : 'Cancel') : (language === 'ar' ? 'رابط جديد' : 'New Link')}
                 </button>
             </div>
 
             {/* Add/Edit Panel */}
             {showPanel && (
-                <section className="glass-panel" style={{
-                    padding: '1.75rem',
-                    borderRadius: '28px',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    background: 'linear-gradient(160deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.01) 100%)',
-                    animation: 'fadeInUp 0.4s cubic-bezier(0.2, 1, 0.3, 1)',
-                    marginBottom: '1rem'
-                }}>
-                    <h4 style={{ color: '#fff', marginBottom: '1rem', marginTop: 0 }}>
+                <section className="bg-[#0f0c29] p-5 sm:p-8 rounded-3xl sm:rounded-[32px] border border-fuchsia-500/20 shadow-[0_20px_50px_rgba(0,0,0,0.5)] relative overflow-hidden animate-[fadeInUp_0.4s_ease-out]">
+                    <div className="absolute -top-32 -right-32 w-48 sm:w-64 h-48 sm:h-64 bg-fuchsia-600/10 blur-[80px] rounded-full pointer-events-none"></div>
+                    <div className="absolute -bottom-32 -left-32 w-48 sm:w-64 h-48 sm:h-64 bg-blue-600/10 blur-[80px] rounded-full pointer-events-none"></div>
+
+                    <h4 className="text-lg sm:text-xl font-black text-white mb-6 sm:mb-8 relative z-10 flex items-center gap-3">
                         {editingId ? (language === 'ar' ? 'تعديل الرابط' : 'Edit Link') : (language === 'ar' ? 'إضافة رابط جديد' : 'Add New Link')}
+                        <div className="h-px flex-1 bg-gradient-to-r from-white/10 to-transparent"></div>
                     </h4>
-                    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                        <div style={{ display: 'flex', gap: '1rem' }}>
-                            <div style={{
-                                width: '55px',
-                                height: '55px',
-                                borderRadius: '16px',
-                                background: 'rgba(255,255,255,0.03)',
-                                border: '1px solid rgba(255,255,255,0.08)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontSize: '1.4rem',
-                                color: 'var(--accent-color)',
-                                flexShrink: 0
-                            }}>
+
+                    <form onSubmit={handleSubmit} className="flex flex-col gap-5 sm:gap-6 relative z-10">
+                        <div className="flex flex-col sm:flex-row gap-4 sm:gap-5">
+                            <div className="w-14 sm:w-16 h-14 sm:h-16 rounded-2xl sm:rounded-[20px] bg-black/40 border border-white/10 flex items-center justify-center text-2xl sm:text-3xl text-fuchsia-400 shrink-0 shadow-inner mx-auto sm:mx-0">
                                 {iconMap[icon]}
                             </div>
-                            <div style={{ flex: 1 }}>
+                            <div className="flex-1 relative group">
+                                <label className="absolute -top-2.5 left-4 bg-[#0f0c29] px-2 text-[9px] sm:text-[10px] font-black text-fuchsia-400 uppercase tracking-widest z-10">
+                                    {t.titlePlaceholder || 'Link Title'}
+                                </label>
                                 <input
                                     type="text"
-                                    placeholder={t.titlePlaceholder}
+                                    placeholder={t.titlePlaceholder || 'e.g. My Latest Video'}
                                     value={title}
                                     onChange={e => setTitle(e.target.value)}
-                                    style={{
-                                        padding: '1.2rem',
-                                        height: '55px',
-                                        borderRadius: '16px',
-                                        border: '1px solid rgba(255,255,255,0.08)',
-                                        background: 'rgba(0,0,0,0.2)',
-                                        color: '#fff',
-                                        width: '100%',
-                                        fontSize: '0.95rem',
-                                        fontWeight: '700'
-                                    }}
+                                    className="w-full h-14 sm:h-16 px-4 sm:px-5 rounded-2xl sm:rounded-[20px] border border-white/10 bg-black/40 text-white text-sm sm:text-base font-bold placeholder-white/20 focus:outline-none focus:border-fuchsia-500/50 focus:bg-black/60 transition-all shadow-inner"
                                 />
                             </div>
                         </div>
 
-                        <div style={{ position: 'relative' }}>
-                            <FaLink style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', left: language === 'ar' ? 'auto' : '1.2rem', right: language === 'ar' ? '1.2rem' : 'auto', opacity: 0.2 }} />
+                        <div className="relative group">
+                            <label className="absolute -top-2.5 left-4 bg-[#0f0c29] px-2 text-[9px] sm:text-[10px] font-black text-blue-400 uppercase tracking-widest z-10">
+                                {t.urlPlaceholder || 'URL / Destination'}
+                            </label>
+                            <FaLink className={`absolute top-1/2 -translate-y-1/2 text-white/20 ${language === 'ar' ? 'right-4 sm:right-5' : 'left-4 sm:left-5'}`} />
                             <input
                                 type="url"
-                                placeholder={t.urlPlaceholder}
+                                placeholder="https://example.com"
                                 value={url}
                                 onChange={e => setUrl(e.target.value)}
-                                style={{
-                                    paddingLeft: language === 'ar' ? '1rem' : '3.2rem',
-                                    paddingRight: language === 'ar' ? '3.2rem' : '1rem',
-                                    paddingTop: '1rem',
-                                    paddingBottom: '1rem',
-                                    borderRadius: '16px',
-                                    border: '1px solid rgba(255,255,255,0.08)',
-                                    background: 'rgba(0,0,0,0.2)',
-                                    color: '#fff',
-                                    width: '100%',
-                                    direction: 'ltr',
-                                    fontSize: '0.9rem',
-                                    fontWeight: '500'
+                                className={`w-full h-14 sm:h-16 rounded-2xl sm:rounded-[20px] border border-white/10 bg-black/40 text-white text-xs sm:text-sm font-medium placeholder-white/20 focus:outline-none focus:border-blue-500/50 focus:bg-black/60 transition-all shadow-inner ${language === 'ar' ? 'pr-10 sm:pr-12 pl-4 text-left' : 'pl-10 sm:pl-12 pr-4 text-left'}`}
+                                dir="ltr"
+                            />
+                        </div>
+
+                        <div className="bg-[#111118] p-4 sm:p-5 rounded-2xl sm:rounded-[24px] border border-white/5 shadow-inner">
+                            <h5 className="text-[9px] sm:text-[10px] font-black text-white/40 uppercase tracking-widest mb-3 sm:mb-4">Choose an Icon</h5>
+                            <IconSelector
+                                selectedIcon={icon}
+                                onSelect={(iconKey) => {
+                                    setIcon(iconKey)
+                                    let platformKey = iconKey.replace('Fa', '').replace('Si', '').toLowerCase()
+                                    if (iconKey === 'FaGlobe') platformKey = 'global'
+                                    if (iconKey === 'FaEnvelope') platformKey = 'email'
+                                    if (t[platformKey] && !editingId) setTitle(t[platformKey])
                                 }}
                             />
                         </div>
 
-                        <IconSelector
-                            selectedIcon={icon}
-                            onSelect={(iconKey) => {
-                                setIcon(iconKey)
-                                let platformKey = iconKey.replace('Fa', '').replace('Si', '').toLowerCase()
-                                if (iconKey === 'FaGlobe') platformKey = 'global'
-                                if (iconKey === 'FaEnvelope') platformKey = 'email'
-                                if (t[platformKey]) setTitle(t[platformKey])
-                            }}
-                        />
-
-
-
                         <button
                             type="submit"
                             disabled={submitting}
-                            style={{
-                                background: 'var(--accent-color)',
-                                border: 'none',
-                                padding: '1.1rem',
-                                fontWeight: '900',
-                                color: '#fff',
-                                borderRadius: '18px',
-                                fontSize: '1rem',
-                                boxShadow: '0 10px 25px rgba(255,45,85,0.2)',
-                                cursor: 'pointer'
-                            }}>
-                            {submitting ? t.loading : (editingId ? (language === 'ar' ? 'حفظ التغييرات' : 'Save Changes') : t.addBtn)}
+                            className="w-full py-4 sm:py-5 mt-2 sm:mt-4 bg-white text-black hover:bg-gray-100 font-black rounded-2xl sm:rounded-[20px] text-sm sm:text-base shadow-[0_10px_30px_rgba(255,255,255,0.2)] hover:shadow-[0_15px_40px_rgba(255,255,255,0.3)] disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:scale-[1.01] active:scale-[0.99]"
+                        >
+                            {submitting ? (
+                                <div className="w-5 sm:w-6 h-5 sm:h-6 border-2 border-black/20 border-t-black rounded-full animate-spin mx-auto"></div>
+                            ) : (
+                                editingId ? (language === 'ar' ? 'حفظ التغييرات' : 'Save Changes') : (t.addBtn || 'Create Link')
+                            )}
                         </button>
                     </form>
                 </section>
             )}
 
             {/* Premium Links Feed */}
-            <div
-                data-editable-id="links_container"
-                data-editable-type="container"
-                style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '1rem',
-                    width: getStyle('links_container', 'width', '100%'),
-                    padding: getStyle('links_container', 'padding', '0'),
-                    transform: `translate(${getStyle('links_container', 'offset_x', 0)}px, ${getStyle('links_container', 'offset_y', 0)}px)`,
-                    transition: 'all 0.3s'
-                }}>
+            <div className="flex flex-col gap-4 sm:gap-5">
                 {links.length === 0 && !loading && (
-                    <div style={{ textAlign: 'center', padding: '4rem 1rem', opacity: 0.2 }}>
-                        <FaLink size={40} style={{ marginBottom: '15px' }} />
-                        <p style={{ fontWeight: '800' }}>{t.noLinks}</p>
+                    <div className="text-center py-16 sm:py-20 flex flex-col items-center bg-[#111118] border border-white/5 rounded-3xl sm:rounded-[32px]">
+                        <div className="w-20 sm:w-24 h-20 sm:h-24 rounded-full bg-white/5 flex items-center justify-center mb-6 border border-white/5 shadow-inner">
+                            <FaLink className="text-4xl sm:text-5xl text-white/10" />
+                        </div>
+                        <p className="text-lg sm:text-xl font-black text-white/40">{t.noLinks || 'Your ecosystem is empty'}</p>
+                        <p className="text-xs sm:text-sm font-bold text-white/20 mt-2">Add your first link above</p>
                     </div>
                 )}
 
-                {links.map((link, index) => {
-                    // Calculate visual style based on Global Skin
-                    const skinStyle = getSkinStyle(settings?.selected_skin);
+                {links.map((link, index) => (
+                    <div
+                        key={link.id}
+                        className="bg-[#111118] p-4 sm:p-6 rounded-3xl sm:rounded-[28px] flex flex-col gap-4 sm:gap-5 group border border-white/5 hover:border-white/10 transition-all duration-300 hover:shadow-2xl hover:bg-[#15151e] relative overflow-hidden"
+                        style={{ animation: `fadeInUp 0.4s cubic-bezier(0.2, 1, 0.3, 1) ${index * 0.05}s both` }}
+                    >
+                        {/* Hover glow effect */}
+                        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" style={{ background: `radial-gradient(circle at top right, rgba(217, 70, 239, 0.05) 0%, transparent 70%)` }}></div>
 
-                    return (
-                        <div
-                            key={link.id}
-                            data-editable-id="link_card"
-                            data-editable-type="container"
-                            className="glass-panel"
-                            style={{
-                                // Base Styles
-                                padding: getStyle('link_card', 'padding', '1.25rem'),
-                                borderRadius: getStyle('link_card', 'border_radius', '24px'),
-                                border: `${getStyle('link_card', 'border_width', '1px')} solid ${getStyle('link_card', 'border_color', 'rgba(255,255,255,0.06)')}`,
-                                borderStyle: getStyle('link_card', 'border_style', 'solid'),
-                                background: getStyle('link_card', 'background_color', 'rgba(255,255,255,0.01)'),
-                                backdropFilter: `blur(${getStyle('link_card', 'backdrop_blur', '0px')}) contrast(${getStyle('link_card', 'backdrop_contrast', '100%')}) brightness(${getStyle('link_card', 'backdrop_brightness', '100%')}) saturate(${getStyle('link_card', 'backdrop_saturate', '100%')})`,
-                                WebkitBackdropFilter: `blur(${getStyle('link_card', 'backdrop_blur', '0px')}) contrast(${getStyle('link_card', 'backdrop_contrast', '100%')}) brightness(${getStyle('link_card', 'backdrop_brightness', '100%')}) saturate(${getStyle('link_card', 'backdrop_saturate', '100%')})`,
-
-                                // Standard Layout
-                                display: 'flex',
-                                flexDirection: 'column',
-                                gap: '12px',
-                                animation: `fadeInUp 0.4s cubic-bezier(0.2, 1, 0.3, 1) ${index * 0.05}s both`,
-                                cursor: 'pointer',
-                                transform: `translate(${getStyle('link_card', 'offset_x', 0)}px, ${getStyle('link_card', 'offset_y', 0)}px)`,
-                                boxShadow: `${getStyle('link_card', 'shadow_offset_x', 0)}px ${getStyle('link_card', 'shadow_offset_y', 4)}px ${getStyle('link_card', 'shadow_blur', '20px')} ${getStyle('link_card', 'shadow_spread', '0px')} ${getStyle('link_card', 'shadow_color', 'rgba(0,0,0,0.05)')}`,
-                                justifyContent: getStyle('link_card', 'justify_content', 'center'),
-                                alignItems: getStyle('link_card', 'align_items', 'stretch'),
-                                textAlign: getStyle('link_card', 'text_align', 'left'),
-                                position: 'relative',
-                                overflow: 'hidden',
-                                transition: 'all 0.3s',
-
-                                // Override with Skin Styles
-                                ...skinStyle
-                            }}>
-                            {/* Visual Indicator for Syria Skin (Stars + Watermark) */}
-                            {settings?.selected_skin === 'syria' && (
-                                <>
-                                    {/* Watermark Text */}
-                                    <div style={{
-                                        position: 'absolute', bottom: '5px', right: '50px',
-                                        fontSize: '3rem', fontWeight: '900', color: 'rgba(255,255,255,0.03)',
-                                        pointerEvents: 'none', zIndex: 0, whiteSpace: 'nowrap',
-                                        fontFamily: "'Tajawal', sans-serif"
-                                    }}>
-                                        {language === 'ar' ? 'تحرير سوريا' : 'SYRIA LIBERATION'}
-                                    </div>
-
-                                    {/* Stars */}
-                                    <div style={{
-                                        position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-                                        display: 'flex', gap: '12px', opacity: 0.15, pointerEvents: 'none', zIndex: 0
-                                    }}>
-                                        <div style={{ color: '#E4312b', fontSize: '2rem' }}>★</div>
-                                        <div style={{ color: '#E4312b', fontSize: '2rem' }}>★</div>
-                                        <div style={{ color: '#E4312b', fontSize: '2rem' }}>★</div>
-                                    </div>
-                                </>
-                            )}
-
-                            {/* Grain Overlay */}
-                            {getStyle('link_card', 'grain_opacity', '0%') !== '0%' && (
-                                <div style={{
-                                    position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
-                                    pointerEvents: 'none', zIndex: 0, opacity: parseFloat(getStyle('link_card', 'grain_opacity', '0%')) / 100,
-                                    backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`
-                                }} />
-                            )}
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 1, position: 'relative' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1, minWidth: 0 }}>
-                                    <div
-                                        data-editable-id="link_icon_container"
-                                        data-editable-type="icon"
-                                        style={{
-                                            width: getStyle('link_icon_container', 'width', 46),
-                                            height: getStyle('link_icon_container', 'height', 46),
-                                            borderRadius: getStyle('link_icon_container', 'border_radius', '14px'),
-                                            background: getStyle('link_icon_container', 'background_color', 'rgba(255,255,255,0.03)'),
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            fontSize: getStyle('link_icon_container', 'icon_size', '1.3rem'),
-                                            color: getStyle('link_icon_container', 'icon_color', '#fff'),
-                                            border: '1px solid rgba(255,255,255,0.05)',
-                                            flexShrink: 0,
-                                            transform: `rotate(${getStyle('link_icon_container', 'rotation', 0)}deg) scaleX(${getStyle('link_icon_container', 'flip_h', 1)})`
-                                        }}>
-                                        {iconMap[link.icon]}
-                                    </div>
-                                    <div style={{ overflow: 'hidden' }}>
-                                        <h4
-                                            data-editable-id="link_title"
-                                            data-editable-type="text"
-                                            style={{
-                                                fontSize: getStyle('link_title', 'font_size', '1.05rem'),
-                                                fontWeight: getStyle('link_title', 'font_weight', '800'),
-                                                lineHeight: getStyle('link_title', 'line_height', 1.2),
-                                                letterSpacing: `${getStyle('link_title', 'letter_spacing', 0)}px`,
-                                                color: getStyle('link_title', 'text_color', '#fff'),
-                                                opacity: getStyle('link_title', 'opacity', 1),
-                                                marginBottom: '2px'
-                                            }}>
-                                            {getLocalizedTitle(link.title, language)}
-                                        </h4>
-                                        <p
-                                            data-editable-id="link_url_text"
-                                            data-editable-type="text"
-                                            style={{
-                                                fontSize: getStyle('link_url_text', 'font_size', '0.75rem'),
-                                                fontWeight: getStyle('link_url_text', 'font_weight', '500'),
-                                                color: getStyle('link_url_text', 'text_color', 'rgba(255,255,255,0.3)'),
-                                                opacity: getStyle('link_url_text', 'opacity', 1),
-                                                direction: 'ltr',
-                                                whiteSpace: 'nowrap',
-                                                overflow: 'hidden',
-                                                textOverflow: 'ellipsis'
-                                            }}>
-                                            {link.url.replace(/(^\w+:|^)\/\//, '')}
-                                        </p>
-                                    </div>
+                        <div className="flex justify-between items-start sm:items-center gap-3 sm:gap-4 relative z-10">
+                            <div className="flex items-center gap-3 sm:gap-5 flex-1 min-w-0">
+                                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-[16px] sm:rounded-[20px] bg-white/5 border border-white/5 flex items-center justify-center text-xl sm:text-2xl text-white shrink-0 group-hover:scale-110 group-hover:rotate-6 transition-transform shadow-inner">
+                                    {iconMap[link.icon]}
                                 </div>
-
-                                <div style={{ display: 'flex', gap: '6px' }}>
-                                    <button
-                                        onClick={() => startEdit(link)}
-                                        style={{
-                                            width: '38px',
-                                            height: '38px',
-                                            borderRadius: '12px',
-                                            background: 'rgba(255, 255, 255, 0.1)',
-                                            color: '#fff',
-                                            border: 'none',
-                                            cursor: 'pointer',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            transition: 'all 0.3s'
-                                        }}>
-                                        <FaEllipsisV size={14} />
-                                    </button>
-                                    <button
-                                        onClick={() => copyToClipboard(link.url, link.id)}
-                                        style={{
-                                            width: '38px',
-                                            height: '38px',
-                                            borderRadius: '12px',
-                                            background: copiedId === link.id ? 'rgba(74, 222, 128, 0.1)' : 'rgba(255,255,255,0.03)',
-                                            color: copiedId === link.id ? '#4ade80' : 'rgba(255,255,255,0.4)',
-                                            border: 'none',
-                                            cursor: 'pointer',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            transition: 'all 0.3s'
-                                        }}>
-                                        {copiedId === link.id ? <FaCheck size={14} /> : <FaCopy size={14} />}
-                                    </button>
-                                    <button
-                                        onClick={() => handleDelete(link.id)}
-                                        style={{
-                                            width: '38px',
-                                            height: '38px',
-                                            borderRadius: '12px',
-                                            background: 'rgba(255, 75, 75, 0.05)',
-                                            color: 'rgba(255, 75, 75, 0.6)',
-                                            border: 'none',
-                                            cursor: 'pointer',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            transition: 'all 0.3s'
-                                        }}>
-                                        <FaTrash size={14} />
-                                    </button>
+                                <div className="overflow-hidden flex-1">
+                                    <h4 className="text-base sm:text-lg font-black text-white mb-0.5 sm:mb-1 truncate group-hover:text-fuchsia-300 transition-colors">
+                                        {getLocalizedTitle(link.title, language)}
+                                    </h4>
+                                    <p className="text-[10px] sm:text-xs font-bold text-white/30 truncate" dir="ltr">
+                                        {link.url.replace(/(^\w+:|^)\/\//, '')}
+                                    </p>
                                 </div>
                             </div>
 
-                            {/* Analytic Strip */}
-                            <div
-                                data-editable-id="link_analytics"
-                                data-editable-type="container"
-                                style={{
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    alignItems: 'center',
-                                    padding: getStyle('link_analytics', 'padding', '10px 14px'),
-                                    background: getStyle('link_analytics', 'background_color', 'rgba(0,0,0,0.2)'),
-                                    borderRadius: getStyle('link_analytics', 'border_radius', '14px'),
-                                    border: `${getStyle('link_analytics', 'border_width', '1px')} solid ${getStyle('link_analytics', 'border_color', 'rgba(255,255,255,0.02)')}`,
-                                    transform: `translate(${getStyle('link_analytics', 'offset_x', 0)}px, ${getStyle('link_analytics', 'offset_y', 0)}px)`,
-                                    transition: 'all 0.3s'
-                                }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    <div style={{
-                                        width: '24px',
-                                        height: '24px',
-                                        borderRadius: '8px',
-                                        background: 'rgba(79,172,254,0.1)',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center'
-                                    }}>
-                                        <FaMousePointer size={10} color="#4facfe" />
-                                    </div>
-                                    <span style={{ fontSize: '0.85rem', fontWeight: '800', color: '#fff' }}>{link.clicks || 0}</span>
-                                    <span style={{ fontSize: '0.7rem', opacity: 0.3, fontWeight: '600', textTransform: 'uppercase' }}>Engagement</span>
-                                </div>
-                                <div style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '6px',
-                                    fontSize: '0.7rem',
-                                    fontWeight: '900',
-                                    opacity: 0.2,
-                                    textTransform: 'uppercase'
-                                }}>
-                                    <FaEye size={10} /> Live
-                                </div>
+                            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 bg-black/40 p-1 sm:p-1.5 rounded-xl sm:rounded-2xl border border-white/5">
+                                <button
+                                    onClick={() => startEdit(link)}
+                                    className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-[14px] hover:bg-white/10 text-white/40 hover:text-white flex items-center justify-center transition-all hover:scale-110"
+                                >
+                                    <FaPencilAlt size={12} className="sm:w-[14px] sm:h-[14px]" />
+                                </button>
+                                <button
+                                    onClick={() => copyToClipboard(link.url, link.id)}
+                                    className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-[14px] flex items-center justify-center transition-all hover:scale-110 ${
+                                        copiedId === link.id 
+                                        ? 'bg-emerald-500/20 text-emerald-400' 
+                                        : 'hover:bg-white/10 text-white/40 hover:text-white'
+                                    }`}
+                                >
+                                    {copiedId === link.id ? <FaCheck size={12} className="sm:w-[14px] sm:h-[14px]" /> : <FaCopy size={12} className="sm:w-[14px] sm:h-[14px]" />}
+                                </button>
+                                <button
+                                    onClick={() => handleDelete(link.id)}
+                                    className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-[14px] hover:bg-rose-500/10 text-white/40 hover:text-rose-400 flex items-center justify-center transition-all hover:scale-110"
+                                >
+                                    <FaTrash size={12} className="sm:w-[14px] sm:h-[14px]" />
+                                </button>
                             </div>
                         </div>
-                    )
-                })}
-            </div>
 
-            <style dangerouslySetInnerHTML={{
-                __html: `
-                .loading-spinner {
-                    width: 25px;
-                    height: 25px;
-                    border: 2px solid rgba(255,255,255,0.1);
-                    border-top: 2px solid var(--accent-color);
-                    border-radius: 50%;
-                    animation: spin 1s linear infinite;
-                }
-                @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-                @keyframes fadeInUp {
-                    from { opacity: 0; transform: translateY(15px); }
-                    to { opacity: 1; transform: translateY(0); }
-                }
-            `}} />
+                        {/* Pro Analytic Strip */}
+                        <div className="flex justify-between items-center px-4 sm:px-5 py-2.5 sm:py-3.5 bg-black/50 rounded-xl sm:rounded-2xl border border-white/5 relative z-10 group-hover:border-white/10 transition-colors">
+                            <div className="flex items-center gap-3 sm:gap-4">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20 shadow-inner">
+                                        <FaMousePointer className="text-[10px] sm:text-[12px] text-blue-400" />
+                                    </div>
+                                    <span className="text-sm sm:text-base font-black text-white group-hover:text-blue-300 transition-colors">{link.clicks || 0}</span>
+                                </div>
+                                <div className="h-3 sm:h-4 w-px bg-white/10"></div>
+                                <span className="text-[9px] sm:text-[10px] text-white/30 font-black uppercase tracking-widest flex items-center gap-1.5">
+                                    <FaChartLine className="text-white/20 hidden sm:block" /> {language === 'ar' ? 'نقرة' : 'Clicks'}
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-1 sm:gap-1.5 text-[8px] sm:text-[10px] font-black text-emerald-400/60 uppercase tracking-widest bg-emerald-500/10 px-2 sm:px-2.5 py-1 rounded-md sm:rounded-lg border border-emerald-500/20">
+                                <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-emerald-400 animate-pulse"></div> Live
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
         </div>
     )
 }

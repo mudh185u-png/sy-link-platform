@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react'
 import { useLanguage } from '../contexts/LanguageContext'
 import { supabase } from '../lib/supabase'
-import { FaUserCircle, FaStar, FaCog, FaCheck } from 'react-icons/fa'
+import { FaUserCircle } from 'react-icons/fa'
 import { MdVerified } from 'react-icons/md'
 
-const Profile = ({ profileData, skin = 'standard' }) => {
-    const { t } = useLanguage()
+const Profile = ({ profileData, theme }) => {
+    const { t, language } = useLanguage()
     const [profile, setProfile] = useState(profileData || null)
     const [loading, setLoading] = useState(!profileData)
 
@@ -33,271 +33,134 @@ const Profile = ({ profileData, skin = 'standard' }) => {
         fetchProfile()
     }, [profileData])
 
+    const getFrameStyle = (frameId) => {
+        switch (frameId) {
+            case 'crimson-halo': return { 
+                gradient: 'conic-gradient(from 0deg, transparent 0%, #ff0000 20%, #ff4d4d 50%, #800000 80%, transparent 100%)', 
+                glow: '0 0 20px rgba(255,0,0,0.4)', speed: 'spin' 
+            };
+            case 'neon-pulse': return { 
+                gradient: 'conic-gradient(from 0deg, transparent 0%, #00ffcc 30%, #ff00ff 70%, transparent 100%)', 
+                glow: '0 0 25px rgba(0,255,204,0.5)', speed: 'spin' 
+            };
+            case 'void-singularity': return { 
+                gradient: 'conic-gradient(from 0deg, #111 0%, #000 25%, #111 50%, #000 75%, #111 100%)', 
+                glow: 'inset 0 0 15px rgba(0,0,0,0.8)', speed: 'spin-slow' 
+            };
+            case 'solar-flare': return { 
+                gradient: 'conic-gradient(from 0deg, #ff8c00, #ffd700, #ff4500, #ff8c00)', 
+                glow: '0 0 30px rgba(255,140,0,0.6)', speed: 'spin' 
+            };
+            case 'ethereal-wisp': return { 
+                gradient: 'conic-gradient(from 0deg, transparent 0%, #ffffff 20%, #e0f2ff 50%, #ffffff 80%, transparent 100%)', 
+                glow: '0 0 20px rgba(255,255,255,0.5)', speed: 'spin-slow' 
+            };
+            case 'crystal-shard': return { 
+                gradient: 'conic-gradient(from 0deg, #4facfe, #00f2fe, #ffffff, #00f2fe, #4facfe)', 
+                glow: '0 0 25px rgba(79,172,254,0.6)', speed: 'spin' 
+            };
+            case 'cybernetic': return { 
+                gradient: 'conic-gradient(from 0deg, #ff0099, #493240, #ff0099)', 
+                glow: '0 0 25px rgba(255,0,153,0.7)', speed: 'spin' 
+            };
+            case 'frostbite': return { 
+                gradient: 'conic-gradient(from 0deg, #00f2fe, #ffffff, #4facfe, #00f2fe)', 
+                glow: '0 0 30px rgba(0,242,254,0.6)', speed: 'spin-slow' 
+            };
+            case 'toxic-glow': return { 
+                gradient: 'conic-gradient(from 0deg, #39ff14, #001a00, #39ff14)', 
+                glow: '0 0 30px rgba(57,255,20,0.8)', speed: 'spin' 
+            };
+            case 'inferno-ring': return { 
+                gradient: 'conic-gradient(from 0deg, #ff3366, #ff99cc, #ff3366)', 
+                glow: '0 0 35px rgba(255,51,102,0.7)', speed: 'spin-fast' 
+            };
+            default: return null;
+        }
+    }
+
     if (loading) return null
 
-    const isLuxury = skin === 'luxury';
-    const isGaming = skin === 'gaming';
-    const isMinimal = skin === 'minimal';
-    const isSocial = skin === 'social';
+    const frameStyle = getFrameStyle(profile?.avatar_frame);
 
-    const renderAvatar = () => {
-        const frame = profile?.avatar_frame || 'none';
+    return (
+        <div className="flex flex-col items-center w-full mb-12 px-4">
+            {/* AVATAR CONTAINER */}
+            <div className="relative flex items-center justify-center z-10 w-[140px] h-[140px] sm:w-[160px] sm:h-[160px] transition-all duration-500 hover:scale-105 group">
+                
+                {/* General subtle outer glow */}
+                <div className="absolute inset-[-10px] bg-white/5 rounded-full blur-xl opacity-50 group-hover:opacity-100 transition-opacity duration-500" />
+                
+                {/* Avatar Frame Container */}
+                <div 
+                    className={`absolute inset-0 rounded-full flex items-center justify-center z-20 transition-all duration-500 overflow-hidden ${!frameStyle ? (theme?.profile?.avatarBorder || 'border-2 border-white/20 shadow-[0_10px_40px_rgba(0,0,0,0.5)] bg-white/5 backdrop-blur-xl') : ''}`}
+                    style={frameStyle ? {
+                        boxShadow: frameStyle.glow,
+                        padding: '4px' // width of the frame ring
+                    } : {}}
+                >
+                    {/* Spinning Gradient Layer (Only active if frame selected) */}
+                    {frameStyle && (
+                        <div 
+                            className={`absolute inset-[-50%] w-[200%] h-[200%] ${frameStyle.speed === 'spin' ? 'animate-spin' : 'animate-[spin_4s_linear_infinite]'}`}
+                            style={{ background: frameStyle.gradient }}
+                        />
+                    )}
 
-        // ARTISTIC MASTERPIECE FRAME STYLES
-        const frameStyles = {
-            'pearl-ethereal': {
-                border: '8px solid transparent',
-                background: 'linear-gradient(#0a0a0a, #0a0a0a) padding-box, linear-gradient(135deg, #fff 0%, #fdeeff 50%, #e0f2ff 100%) border-box',
-                boxShadow: '0 0 40px rgba(255,255,255,0.4), inset 0 0 20px rgba(255,255,255,0.2)',
-                animation: 'silkFlow 6s ease-in-out infinite alternate',
-                position: 'relative',
-                borderRadius: '40% 60% 50% 50% / 50% 50% 40% 60%'
-            },
-            'obsidian-neon': {
-                border: '4px solid rgba(0, 242, 255, 0.8)',
-                background: 'rgba(0,0,0,0.85)',
-                boxShadow: '0 0 30px #00f2ff, inset 0 0 20px #00f2ff',
-                animation: 'neonScan 3s linear infinite',
-                backdropFilter: 'blur(10px)',
-                position: 'relative'
-            },
-            'grand-chronos': {
-                border: '10px solid transparent',
-                background: 'linear-gradient(#050505, #050505) padding-box, linear-gradient(135deg, #DAA520, #000, #DAA520) border-box',
-                boxShadow: '0 15px 45px rgba(0,0,0,0.8), 0 0 20px rgba(218, 165, 32, 0.3)',
-                position: 'relative',
-                zIndex: 10
-            },
-            'diamond-prism': {
-                border: '6px solid transparent',
-                background: 'linear-gradient(#080808, #080808) padding-box, linear-gradient(135deg, #fff, #b9f2ff, #fff) border-box',
-                boxShadow: '0 0 40px rgba(255,255,255,0.6)',
-                animation: 'diamondSparkle 4s ease-in-out infinite',
-                clipPath: 'polygon(50% 0%, 90% 10%, 100% 50%, 90% 90%, 50% 100%, 10% 90%, 0% 50%, 10% 10%)'
-            },
-            'aurora-liquid': {
-                border: '6px solid transparent',
-                background: 'linear-gradient(#080808, #080808) padding-box, linear-gradient(45deg, #007bff, #00ff88, #7000ff, #007bff) border-box',
-                backgroundSize: '400% 400%',
-                boxShadow: '0 0 35px rgba(0, 123, 255, 0.6)',
-                animation: 'auroraFlow 8s linear infinite',
-                opacity: 0.95
-            },
-        };
-
-        const currentFrameStyle = frameStyles[frame] || {};
-
-        return (
-            <div style={{
-                position: 'relative',
-                width: isSocial ? '180px' : (isGaming || frame !== 'none' ? '170px' : '150px'),
-                height: isSocial ? '180px' : (isGaming || frame !== 'none' ? '170px' : '150px'),
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                zIndex: 10,
-                transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)'
-            }}>
-                {/* GRAND CHRONOS DECORATIONS */}
-                {frame === 'grand-chronos' && (
-                    <>
-                        <div style={{ position: 'absolute', inset: '-12px', border: '1px solid #DAA520', borderRadius: '50%', opacity: 0.4 }} />
-                        <div style={{ position: 'absolute', top: '-15px', left: '-15px', animation: 'spinClockwise 15s linear infinite' }}>
-                            <FaCog color="#DAA520" size={30} style={{ filter: 'drop-shadow(0 5px 10px rgba(0,0,0,0.5))' }} />
-                        </div>
-                        <div style={{ position: 'absolute', bottom: '-10px', right: '-10px', animation: 'spinCounterClockwise 10s linear infinite' }}>
-                            <FaCog color="#DAA520" size={25} style={{ filter: 'drop-shadow(0 5px 10px rgba(0,0,0,0.5))' }} />
-                        </div>
-                    </>
-                )}
-
-                {/* DIAMOND PRISM LIGHT LEAKS */}
-                {frame === 'diamond-prism' && (
-                    <div style={{
-                        position: 'absolute', inset: '-20px',
-                        background: 'conic-gradient(from 0deg, rgba(255,0,0,0.1), rgba(255,255,0,0.1), rgba(0,255,0,0.1), rgba(0,255,255,0.1), rgba(0,0,255,0.1), rgba(255,0,255,0.1), rgba(255,0,0,0.1))',
-                        filter: 'blur(30px)',
-                        zIndex: -1,
-                        animation: 'spinClockwise 10s linear infinite'
-                    }} />
-                )}
-
-                {/* OBSIDIAN NEON REFLECTIONS */}
-                {frame === 'obsidian-neon' && (
-                    <div style={{
-                        position: 'absolute', inset: '0',
-                        background: 'linear-gradient(135deg, transparent 40%, rgba(255,255,255,0.2) 50%, transparent 60%)',
-                        backgroundSize: '300% 300%',
-                        animation: 'glassShine 3s ease-in-out infinite',
-                        zIndex: 15,
-                        pointerEvents: 'none',
-                        borderRadius: '50%'
-                    }} />
-                )}
-
-                {/* AVATAR CONTAINER */}
-                <div style={{
-                    width: '100%',
-                    height: '100%',
-                    borderRadius: (isGaming || isSocial) ? '0' : '50%',
-                    clipPath: isGaming ? 'polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)' : (isSocial ? 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)' : 'none'),
-                    overflow: 'hidden',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    background: '#111',
-                    border: (isGaming || isSocial || frame !== 'none') ? 'none' : '4px solid rgba(255,255,255,0.05)',
-                    boxShadow: (isGaming || isSocial || frame !== 'none') ? 'none' : '0 10px 30px rgba(0,0,0,0.4)',
-                    ...currentFrameStyle
-                }}>
-                    {profile?.avatar_url ? (
-                        profile.avatar_url.match(/\.(mp4|webm|mov)$/i) ? (
-                            <video
-                                src={profile.avatar_url}
-                                autoPlay
-                                loop
-                                muted
-                                playsInline
-                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                            />
+                    {/* Inner Image Container (Blocks the middle of the gradient) */}
+                    <div className={`w-full h-full overflow-hidden relative flex items-center justify-center bg-black/80 z-10 border border-white/10 ${theme?.avatarShape || 'rounded-full'}`}>
+                        {profile?.avatar_url ? (
+                            profile.avatar_url.match(/\.(mp4|webm|mov)$/i) ? (
+                                <video
+                                    src={profile.avatar_url}
+                                    autoPlay
+                                    loop
+                                    muted
+                                    playsInline
+                                    className="w-full h-full object-cover scale-110"
+                                />
+                            ) : (
+                                <img src={profile.avatar_url} alt="Profile" className="w-full h-full object-cover" />
+                            )
                         ) : (
-                            <img src={profile.avatar_url} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                        )
-                    ) : (
-                        <FaUserCircle size={150} color="rgba(255,255,255,0.01)" />
+                            <FaUserCircle size={100} className="text-white/20" />
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            {/* NAME AND VERIFIED BADGE */}
+            <div className="mt-8 flex flex-col items-center gap-3 w-full">
+                <div className="flex items-center justify-center gap-3 flex-wrap">
+                    <h1 className={`text-4xl sm:text-5xl drop-shadow-md text-center transition-colors duration-500 ${theme?.profile?.name || 'font-black text-white tracking-tight'}`}
+                        style={{ fontFamily: language === 'ar' ? "'Tajawal', sans-serif" : (theme?.font || "'Outfit', sans-serif") }}>
+                        {profile?.full_name || t.name}
+                    </h1>
+
+                    {profile?.is_verified && (
+                        <div className="flex items-center gap-1.5 px-4 py-1.5 bg-white/5 backdrop-blur-md border border-amber-500/30 rounded-full shadow-[0_0_15px_rgba(218,165,32,0.15)] animate-[fadeInUp_0.5s_ease-out]">
+                            <MdVerified className="text-amber-400 drop-shadow-[0_0_5px_rgba(251,191,36,0.8)]" size={20} />
+                            <span className="text-sm font-bold text-amber-400 tracking-wide uppercase">
+                                {t.verifiedLabel}
+                            </span>
+                        </div>
                     )}
                 </div>
 
-                {/* ANIMATION DEFINITIONS */}
-                <style>{`
-                    @import url('https://fonts.googleapis.com/css2?family=Amiri:wght@700&family=Aref+Ruqaa:wght@700&display=swap');
-                    
-                    @keyframes sealShimmer {
-                        0% { left: -100%; }
-                        20% { left: 200%; }
-                        100% { left: 200%; }
-                    }
-                    @keyframes silkFlow {
-                        0% { border-radius: 40% 60% 50% 50% / 50% 50% 40% 60%; transform: rotate(0deg) scale(1); }
-                        100% { border-radius: 50% 50% 60% 40% / 40% 60% 50% 50%; transform: rotate(5deg) scale(1.05); }
-                    }
-                    @keyframes neonScan {
-                        0% { border-color: rgba(0, 242, 255, 0.8); box-shadow: 0 0 20px #00f2ff; }
-                        50% { border-color: rgba(0, 242, 255, 1); box-shadow: 0 0 45px #00f2ff, inset 0 0 10px #00f2ff; }
-                        100% { border-color: rgba(0, 242, 255, 0.8); box-shadow: 0 0 20px #00f2ff; }
-                    }
-                    @keyframes diamondSparkle {
-                        0%, 100% { filter: brightness(1) contrast(1); transform: scale(1); }
-                        50% { filter: brightness(1.4) contrast(1.2); transform: scale(1.02); }
-                    }
-                    @keyframes auroraFlow {
-                        0% { background-position: 0% 50%; }
-                        50% { background-position: 100% 50%; }
-                        100% { background-position: 0% 50%; }
-                    }
-                    @keyframes spinClockwise {
-                        from { transform: rotate(0deg); }
-                        to { transform: rotate(360deg); }
-                    }
-                    @keyframes spinCounterClockwise {
-                        from { transform: rotate(360deg); }
-                        to { transform: rotate(0deg); }
-                    }
-                    @keyframes glassShine {
-                        0% { background-position: -100% 0; }
-                        100% { background-position: 200% 0; }
-                    }
-                    @keyframes fadeInUp {
-                        from { opacity: 0; transform: translateY(10px); }
-                        to { opacity: 1; transform: translateY(0); }
-                    }
-                `}</style>
-            </div>
-        );
-    }
-
-    return (
-        <div style={{
-            textAlign: 'center',
-            marginBottom: '4rem',
-            padding: '0 1.5rem',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            width: '100%'
-        }}>
-            {renderAvatar()}
-
-            <div style={{
-                marginTop: '3rem',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '12px',
-                flexWrap: 'wrap',
-                width: '100%'
-            }}>
-                <h1 style={{
-                    fontSize: isSocial ? '3.5rem' : (isMinimal ? '2.5rem' : '3rem'),
-                    fontWeight: '700',
-                    color: '#fff',
-                    letterSpacing: isSocial ? '3px' : (isGaming ? '1.5px' : '-0.5px'),
-                    textShadow: '0 10px 40px rgba(0,0,0,0.8)',
-                    fontFamily: "'Amiri', 'Aref Ruqaa', serif",
-                    textTransform: (isGaming || isSocial) ? 'uppercase' : 'none',
-                    lineHeight: 1.2,
-                    margin: 0
-                }}>
-                    {profile?.full_name || t.name}
-                </h1>
-
-                {/* MINIMAL VERIFIED BADGE */}
-                {profile?.is_verified && (
-                    <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        padding: '6px 16px',
-                        background: 'rgba(255, 255, 255, 0.03)',
-                        border: '1px solid rgba(218, 165, 32, 0.3)',
-                        borderRadius: '50px',
-                        backdropFilter: 'blur(10px)',
-                        animation: 'fadeInUp 0.8s ease-out',
-                        height: 'fit-content'
-                    }}>
-                        <MdVerified color="#DAA520" size={18} />
-                        <span style={{
-                            fontSize: '0.85rem',
-                            fontWeight: '700',
-                            color: '#DAA520',
-                            letterSpacing: '0.5px',
-                        }}>
-                            {t.verifiedLabel}
-                        </span>
-                    </div>
-                )}
+                {/* BIO / WEBSITE CONTAINER */}
+                <div className="bio-container mt-3 inline-flex items-center justify-center px-6 py-3 bg-white/5 backdrop-blur-xl border border-white/10 rounded-full shadow-lg max-w-full text-center">
+                    <span className={`text-base sm:text-lg tracking-wide transition-colors duration-500 ${theme?.profile?.bio || 'font-medium text-white/80'}`}>
+                        {profile?.website || t.bio}
+                    </span>
+                </div>
             </div>
 
-            <div style={{
-                marginTop: '1.2rem',
-                display: 'inline-block',
-                padding: isSocial ? '8px 25px' : '10px 30px',
-                background: isSocial ? 'transparent' : (isGaming ? 'rgba(0, 242, 255, 0.08)' : 'rgba(255,255,255,0.08)'),
-                border: isSocial ? 'none' : (isGaming ? '1.5px solid #00f2ff' : '1px solid rgba(255,255,255,0.15)'),
-                borderBottom: isSocial ? '3px solid #fff' : (isLuxury ? '2px solid #d4af37' : '1px solid rgba(255,255,255,0.15)'),
-                borderRadius: isMinimal ? '32px' : (isGaming ? '4px' : (isSocial ? '0' : '80px')),
-                fontSize: isSocial ? '1rem' : '1.1rem',
-                color: isLuxury ? '#d4af37' : 'rgba(255,255,255,0.7)',
-                fontWeight: '600',
-                letterSpacing: isSocial ? '1px' : '0.1px',
-                backdropFilter: 'blur(20px)',
-                boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
-                position: 'relative',
-                zIndex: 1
-            }}>
-                {isSocial && <FaStar style={{ color: '#f09433', marginInlineEnd: '8px' }} />}
-                {profile?.website || t.bio}
-            </div>
+            <style>{`
+                @keyframes fadeInUp {
+                    from { opacity: 0; transform: translateY(10px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+            `}</style>
         </div>
     )
 }

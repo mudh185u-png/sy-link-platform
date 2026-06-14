@@ -1,10 +1,12 @@
 import React from 'react'
 import { NavLink } from 'react-router-dom'
-import { FaHome, FaLink, FaUser, FaPalette, FaUserShield } from 'react-icons/fa'
+import { FaHome, FaLink, FaUser, FaPalette } from 'react-icons/fa'
 import { useLanguage } from '../contexts/LanguageContext'
+import { motion } from 'framer-motion'
 
 const BottomNav = () => {
-    const { t } = useLanguage()
+    const { t, language } = useLanguage()
+    const isRtl = language === 'ar'
 
     const navItems = [
         { icon: <FaHome />, label: t.home, path: '/admin/home' },
@@ -14,44 +16,57 @@ const BottomNav = () => {
     ]
 
     return (
-        <nav style={{
-            position: 'fixed',
-            bottom: '20px',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            width: 'calc(100% - 2.5rem)', // Horizontal breathing room
-            maxWidth: '440px',
-            height: '75px',
-            background: 'rgba(255, 255, 255, 0.03)',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
-            borderRadius: '24px',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-            display: 'flex',
-            justifyContent: 'space-around',
-            alignItems: 'center',
-            padding: '0 1rem',
-            zIndex: 1000,
-            boxShadow: '0 10px 40px rgba(0, 0, 0, 0.3)',
-        }}>
+        <nav className={`
+            fixed z-[1000] flex items-center justify-evenly
+            glass-panel
+            /* Mobile styles */
+            bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] h-[70px] rounded-[35px] max-w-md px-2
+            /* Desktop styles */
+            md:bottom-auto md:top-1/2 md:-translate-y-1/2 md:-translate-x-0
+            ${isRtl ? 'md:right-6' : 'md:left-6'}
+            md:w-[80px] md:h-auto md:max-h-[80vh] md:flex-col md:py-8 md:gap-8 md:rounded-[40px]
+            shadow-[0_20px_40px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.1)]
+            bg-[#0f0f0f]/65 backdrop-blur-2xl backdrop-saturate-[1.8] border border-white/10
+        `}>
             {navItems.map((item) => (
                 <NavLink
                     key={item.path}
                     to={item.path}
-                    className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}
-                    style={({ isActive }) => ({
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        color: isActive ? 'var(--accent-color)' : 'rgba(255, 255, 255, 0.6)',
-                        textDecoration: 'none',
-                        fontSize: '0.8rem',
-                        gap: '4px',
-                        transition: 'all 0.3s ease'
-                    })}
+                    className={({ isActive }) => `
+                        relative flex flex-col items-center justify-center transition-all duration-500
+                        ${isActive ? 'text-rose-400' : 'text-white/40 hover:text-white/70'}
+                        w-[60px] h-[60px] md:w-[60px] md:h-[60px]
+                    `}
                 >
-                    <span style={{ fontSize: '1.4rem' }}>{item.icon}</span>
-                    <span style={{ fontWeight: 'bold' }}>{item.label}</span>
+                    {({ isActive }) => (
+                        <>
+                            {isActive && (
+                                <motion.div 
+                                    layoutId="nav-indicator"
+                                    className={`
+                                        absolute bg-gradient-to-r from-rose-500 to-purple-600 rounded-full shadow-[0_0_10px_#f43f5e]
+                                        /* Mobile indicator */
+                                        top-0 w-[30px] h-[4px]
+                                        /* Desktop indicator */
+                                        md:top-auto md:left-0 md:w-[4px] md:h-[30px] md:top-1/2 md:-translate-y-1/2
+                                        ${isRtl ? 'md:left-auto md:right-0' : ''}
+                                    `}
+                                />
+                            )}
+                            <span className={`
+                                transition-all duration-300 flex items-center justify-center
+                                ${isActive ? 'text-2xl md:text-3xl drop-shadow-[0_0_8px_rgba(244,63,94,0.4)] md:-translate-y-2' : 'text-xl md:text-2xl'}
+                            `}>
+                                {item.icon}
+                            </span>
+                            <span className={`
+                                text-[10px] md:text-xs font-black transition-all duration-300 absolute
+                                ${isActive ? 'opacity-100 bottom-1 md:-bottom-2' : 'opacity-0 translate-y-2'}
+                            `}>
+                                {item.label}
+                            </span>
+                        </>
+                    )}
                 </NavLink>
             ))}
         </nav>
@@ -59,3 +74,4 @@ const BottomNav = () => {
 }
 
 export default BottomNav
+

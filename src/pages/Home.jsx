@@ -7,10 +7,11 @@ import AnimatedBackground from '../components/AnimatedBackground'
 import LanguageSwitcher from '../components/LanguageSwitcher'
 import { useLanguage } from '../contexts/LanguageContext'
 import { useAuth } from '../contexts/AuthContext'
+import { getThemeConfig } from '../utils/themeConfig'
 
 const Home = () => {
     const { username } = useParams()
-    const { t } = useLanguage()
+    const { t, language } = useLanguage()
     const { settings: globalSettings } = useAuth()
     const [profile, setProfile] = useState(null)
     const [loading, setLoading] = useState(true)
@@ -56,7 +57,30 @@ const Home = () => {
                 }
 
                 setProfile(data)
-                supabase.rpc('increment_profile_views', { profile_id: data.id }).then(() => { })
+                
+                // --- SECURITY: Anti-Spam View Tracking ---
+                // Generate or retrieve a unique visitor ID for this device
+                let visitorId = localStorage.getItem('visitor_id');
+                if (!visitorId) {
+                    visitorId = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2);
+                    localStorage.setItem('visitor_id', visitorId);
+                }
+
+                // Check local throttle to avoid redundant DB calls on fast refreshes
+                const lastViewedKey = `viewed_${data.id}`;
+                const lastViewed = localStorage.getItem(lastViewedKey);
+                const now = Date.now();
+                
+                // Only send request if we haven't viewed this profile in the last hour
+                if (!lastViewed || (now - parseInt(lastViewed)) > 3600000) {
+                    supabase.rpc('increment_profile_views', { 
+                        profile_id: data.id,
+                        visitor_hash: visitorId 
+                    }).then(() => { 
+                        localStorage.setItem(lastViewedKey, now.toString());
+                    }).catch(err => console.error("Analytics Error:", err));
+                }
+                // ------------------------------------------
 
             } catch (error) {
                 console.error('Error:', error)
@@ -85,177 +109,125 @@ const Home = () => {
         </div>
     )
 
-    let skin = profile?.selected_skin || 'standard';
 
-    // Check if current skin is allowed
-    if (globalSettings?.page_backgrounds?.allowed_skins?.length > 0) {
-        if (!globalSettings.page_backgrounds.allowed_skins.includes(skin)) {
-            skin = globalSettings.page_backgrounds.default_skin || 'standard';
-        }
-    }
+    let skinId = profile?.selected_skin || 'standard';
+    
+    const theme = getThemeConfig(skinId);
+    const skinClass = `skin-${skinId}`;
+
+    // Determine the right font
+    const baseFont = language === 'ar' ? 'Tajawal, sans-serif' : (theme.font || "'Outfit', sans-serif");
 
     return (
-        <div className={`theme-${skin}`} style={{
-            minHeight: '100vh',
-            position: 'relative',
-            width: '100%',
-            overflowX: 'hidden'
-        }}>
+        <div className={`${skinClass} min-h-screen w-full relative overflow-x-hidden transition-colors duration-500 bg-transparent text-white`} style={{ fontFamily: baseFont, direction: language === 'ar' ? 'rtl' : 'ltr' }}>
+            {/* Inject custom CSS for category skins */}
+            {theme.customCSS && <style>{theme.customCSS}</style>}
+
+            {/* Decorative overlays for category skins */}
+            {theme.decorations && (
+                <div className="fixed inset-0 pointer-events-none z-[5] overflow-hidden">
+                    {theme.decorations.map((dec, i) => {
+                        if (dec.type === 'gradient-orb') {
+                            const posStyle = {};
+                            if (dec.position?.includes('top')) posStyle.top = '10%';
+                            if (dec.position?.includes('bottom')) posStyle.bottom = '10%';
+                            if (dec.position?.includes('left')) posStyle.left = '5%';
+                            if (dec.position?.includes('right')) posStyle.right = '5%';
+                            return (
+                                <div key={i} className="absolute animate-pulse" style={{
+                                    ...posStyle,
+                                    width: dec.size || 100,
+                                    height: dec.size || 100,
+                                    background: `radial-gradient(circle, ${dec.colors?.join(', ') || '#fff'})`,
+                                    filter: `blur(${dec.blur || 60}px)`,
+                                    opacity: dec.opacity || 0.1,
+                                    borderRadius: '50%',
+                                }} />
+                            );
+                        }
+                        if (dec.type === 'emoji') {
+                            const posStyle = {};
+                            if (dec.position?.includes('top')) posStyle.top = '15%';
+                            if (dec.position?.includes('bottom')) posStyle.bottom = '20%';
+                            if (dec.position?.includes('left')) posStyle.left = '8%';
+                            if (dec.position?.includes('right')) posStyle.right = '8%';
+                            return (
+                                <div key={i} className="absolute" style={{
+                                    ...posStyle,
+                                    fontSize: dec.size || 24,
+                                    opacity: dec.opacity || 0.2,
+                                    animation: dec.animate === 'float' ? 'floatHeart 4s ease-in-out infinite' : 'none',
+                                    animationDelay: `${i * 0.8}s`,
+                                }}>{dec.emoji}</div>
+                            );
+                        }
+                        if (dec.type === 'corner-bracket') {
+                            const isTop = dec.position?.includes('top');
+                            const isLeft = dec.position?.includes('left');
+                            return (
+                                <div key={i} className="absolute" style={{
+                                    [isTop ? 'top' : 'bottom']: 20,
+                                    [isLeft ? 'left' : 'right']: 20,
+                                    width: 20, height: 20,
+                                    borderColor: dec.color || '#66fcf1',
+                                    borderWidth: 2,
+                                    borderStyle: 'solid',
+                                    [isTop ? 'borderBottom' : 'borderTop']: 'none',
+                                    [isLeft ? 'borderRight' : 'borderLeft']: 'none',
+                                    opacity: 0.6,
+                                }} />
+                            );
+                        }
+                        return null;
+                    })}
+                </div>
+            )}
+
             <AnimatedBackground
                 type={profile?.background_type}
                 config={profile?.background_config}
-                skin={skin}
+                skin={skinId} 
             />
 
             {/* MAIN CONTAINER */}
-            <div style={{
-                position: 'relative',
-                zIndex: 1,
-                padding: '1.2rem', // Adjusted padding
-                paddingBottom: '8rem',
-                width: '100%',
-                maxWidth: '480px', // Adjusted max-width (Sweet spot)
-                margin: '0 auto', // ADDED THIS TO CENTER THE CONTAINER
-                boxSizing: 'border-box',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center'
-            }}>
-                <header style={{
-                    position: 'fixed',
-                    top: '1.5rem',
-                    left: '50%',
-                    transform: `translateX(-50%) translateY(${showHeader ? '0' : '-200%'})`,
-                    zIndex: 100,
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    background: 'rgba(0,0,0,0.85)', // Darker, solid-ish background without blur
-                    // backdropFilter: 'blur(20px)', // DISABLED FOR PERFORMANCE
-                    padding: '0.8rem 1.2rem',
-                    borderRadius: '16px',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
-                    width: '95%',
-                    maxWidth: '460px',
-                    transition: 'transform 0.3s ease-in-out'
-                }}>
-                    <Link to="/" style={{
-                        textDecoration: 'none',
-                        color: skin === 'luxury' ? '#d4af37' : '#fff',
-                        fontFamily: skin === 'luxury' ? "'Playfair Display', serif" : "'Outfit', sans-serif",
-                        fontSize: '1.4rem',
-                        fontWeight: '950',
-                        letterSpacing: '-0.5px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px'
-                    }}>
-                        <span style={{
-                            background: skin === 'gaming' ? '#00f2ff' : 'var(--accent-color)',
-                            width: '8px',
-                            height: '8px',
-                            borderRadius: '50%',
-                            boxShadow: skin === 'gaming' ? '0 0 10px #00f2ff' : 'none'
-                        }}></span>
+            <div className={`relative z-10 w-full max-w-[480px] mx-auto min-h-screen flex flex-col pb-24 px-4 sm:px-6 ${theme.global || ''}`}>
+                
+                {/* Header */}
+                <header className="sticky top-0 z-50 w-full flex justify-between items-center px-2 pt-6 pb-4 mb-2">
+                    <Link to="/" className="flex items-center gap-2 font-black text-sm tracking-tight transition-colors text-white/70 hover:text-white">
+                        <div className="w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_10px_#f43f5e]" />
                         SY Link
                     </Link>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div className="flex items-center gap-2 sm:gap-3">
                         <LanguageSwitcher inline={true} />
-                        <Link to="/" style={{
-                            textDecoration: 'none',
-                            fontSize: '0.8rem',
-                            fontWeight: '800',
-                            color: '#fff',
-                            background: skin === 'gaming' ? 'rgba(0, 242, 255, 0.1)' : (skin === 'luxury' ? 'rgba(212, 175, 55, 0.1)' : 'var(--accent-gradient)'),
-                            padding: '8px 14px',
-                            borderRadius: '12px',
-                            border: skin === 'gaming' ? '1.5px solid #00f2ff' : (skin === 'luxury' ? '1.5px solid #d4af37' : 'none'),
-                            transition: 'all 0.3s ease',
-                            whiteSpace: 'nowrap'
-                        }}>
+                        <Link to="/" className="text-[10px] sm:text-xs font-black px-3 py-1.5 rounded-full transition-all backdrop-blur-sm whitespace-nowrap uppercase tracking-wider bg-white/5 text-white/80 hover:bg-white/10 hover:text-white border border-white/10">
                             {t.createYourPage}
                         </Link>
                     </div>
                 </header>
 
-                <main style={{ width: '100%', marginTop: '6rem' }}>
-                    <Profile profileData={profile} skin={skin} />
-                    <LinkList userId={profile.id} skin={skin} />
+                {/* Profile Content - Always respects hide_glass_panel */}
+                <main className={`w-full flex-1 flex flex-col items-center p-6 sm:p-8 mt-2 transition-all duration-500 ${profile?.background_config?.hide_glass_panel !== false ? 'bg-transparent border-none shadow-none' : theme.container}`}>
+                    <Profile profileData={profile} theme={theme} />
+                    <LinkList userId={profile.id} theme={theme} />
                 </main>
 
-                <footer style={{
-                    marginTop: '5rem',
-                    padding: '2.5rem 1.5rem',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: '24px',
-                    textAlign: 'center',
-                    background: 'rgba(0,0,0,0.9)', // Solid dark background
-                    // backdropFilter: 'blur(10px)', // DISABLED FOR PERFORMANCE
-                    borderRadius: '24px',
-                    border: '1.5px solid rgba(255,255,255,0.1)',
-                    boxShadow: '0 10px 40px rgba(0,0,0,0.4)',
-                    width: '100%',
-                    /* ALIGN WITH NEW CARD WIDTH */
-                    maxWidth: '480px'
-                }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '25px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            <span style={{
-                                fontSize: '0.9rem', // Increased from 0.75rem
-                                textTransform: 'uppercase',
-                                letterSpacing: '2px',
-                                color: '#fff',
-                                opacity: 0.9
-                            }}>{t.developedBy}</span>
-                            <span style={{
-                                fontFamily: skin === 'luxury' ? "'Playfair Display', serif" : "'Homemade Apple', cursive",
-                                fontSize: '1.3rem', // Increased from 1.1rem
-                                color: skin === 'luxury' || skin === 'gaming' ? (skin === 'luxury' ? '#d4af37' : '#00f2ff') : 'var(--accent-color)',
-                                fontWeight: 'bold'
-                            }}>MUD</span>
+                {/* Footer */}
+                <footer className="mt-16 w-full flex flex-col items-center gap-6 p-8 bg-white/[0.02] backdrop-blur-xl border border-white/10 rounded-[32px] shadow-2xl text-center">
+                    <div className="flex items-center gap-4 opacity-80">
+                        <div className="flex items-center gap-2">
+                            <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-white/50">{t.developedBy}</span>
+                            <span className="text-sm font-black text-rose-400">MUD</span>
                         </div>
-
-                        <div style={{ width: '1px', height: '15px', background: 'rgba(255,255,255,0.2)' }}></div>
-
-                        <span style={{
-                            fontFamily: "'Homemade Apple', cursive",
-                            fontSize: '1.5rem', // Increased from 1.3rem
-                            color: '#fff',
-                            textShadow: '0 2px 10px rgba(0,0,0,0.5)'
-                        }}>SY Link</span>
+                        <div className="w-px h-4 bg-white/20" />
+                        <span className="text-lg font-black tracking-tighter drop-shadow-md text-white">SY Link</span>
                     </div>
 
-                    <div style={{
-                        fontSize: '1rem', // Increased from 0.9rem
-                        color: '#fff',
-                        opacity: 1,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '12px',
-                        fontWeight: '600'
-                    }}>
-                        <span style={{ letterSpacing: '0.5px' }}>{t.allRightsReserved}</span>
-                        <div style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '10px',
-                            color: skin === 'gaming' ? '#00f2ff' : (skin === 'luxury' ? '#d4af37' : '#fff'),
-                            background: skin === 'gaming' ? 'rgba(0, 242, 255, 0.15)' : (skin === 'luxury' ? 'rgba(212, 175, 55, 0.15)' : 'var(--accent-color)'),
-                            fontSize: '0.8rem',
-                            fontWeight: '900',
-                            textTransform: 'uppercase',
-                            letterSpacing: '1.5px',
-                            padding: '6px 16px',
-                            borderRadius: '30px',
-                            border: '1.5px solid rgba(255,255,255,0.2)',
-                            boxShadow: '0 5px 15px rgba(0,0,0,0.2)'
-                        }}>
-                            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'currentColor', boxShadow: '0 0 10px currentColor' }}></span>
+                    <div className="flex flex-col items-center gap-3">
+                        <span className="text-xs font-semibold tracking-wider uppercase text-white/40">{t.allRightsReserved}</span>
+                        <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.15em] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-4 py-2 rounded-full shadow-[0_0_15px_rgba(16,185,129,0.15)]">
+                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]" />
                             {t.maxSecurity}
                         </div>
                     </div>

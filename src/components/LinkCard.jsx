@@ -3,77 +3,36 @@ import { FaChevronRight, FaChevronLeft } from 'react-icons/fa'
 import { useLanguage } from '../contexts/LanguageContext'
 import { getLocalizedTitle } from '../constants/translations'
 
-const LinkCard = ({ id, title, url, icon, skin = 'standard' }) => {
+const LinkCard = ({ id, title, url, icon, theme }) => {
     const { language } = useLanguage()
 
     const handleClick = () => {
         if (id) {
-            supabase.rpc('increment_link_clicks', { link_id: id }).then(() => { })
+            // --- SECURITY: Anti-Spam Click Tracking ---
+            let visitorId = localStorage.getItem('visitor_id');
+            if (!visitorId) {
+                visitorId = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2);
+                localStorage.setItem('visitor_id', visitorId);
+            }
+
+            const lastClickedKey = `clicked_${id}`;
+            const lastClicked = localStorage.getItem(lastClickedKey);
+            const now = Date.now();
+            
+            // Only send request if we haven't clicked this link in the last 10 minutes
+            if (!lastClicked || (now - parseInt(lastClicked)) > 600000) {
+                supabase.rpc('increment_link_clicks', { 
+                    link_id: id,
+                    visitor_hash: visitorId 
+                }).then(() => { 
+                    localStorage.setItem(lastClickedKey, now.toString());
+                }).catch(err => console.error("Analytics Error:", err));
+            }
+            // ------------------------------------------
         }
     }
 
-    const isSocial = skin === 'social';
-    const isLuxury = skin === 'luxury';
-    const isGaming = skin === 'gaming';
-    const isSyria = skin === 'syria';
-
-    const cardPadding = isSocial ? '20px 28px' : '18px 24px'; // Increased from 18/24 and 14/22
-    const iconSide = isSocial ? '46px' : '50px'; // Increased from 42 and 46
-    const fontSize = isSocial ? '1.1rem' : '1.35rem'; // Increased from 1 and 1.25
-    const marginBetween = isSocial ? '1.6rem' : '1.4rem'; // Increased margins
-
-    const getCardStyles = () => {
-        if (isSocial) return {
-            background: 'rgba(0, 0, 0, 0.95)',
-            border: '2px solid #ffffff',
-            borderRadius: '2px',
-            boxShadow: '0 20px 40px rgba(0,0,0,0.4)',
-            padding: cardPadding,
-            position: 'relative'
-        }
-        if (isGaming) return {
-            background: 'rgba(2, 4, 12, 0.9)',
-            backdropFilter: 'blur(20px)',
-            border: '1px solid rgba(0, 242, 255, 0.2)',
-            borderRadius: '0',
-            clipPath: 'polygon(5% 0%, 100% 0%, 95% 100%, 0% 100%)',
-            padding: cardPadding
-        }
-        if (isLuxury) return {
-            background: 'rgba(255, 255, 255, 0.08)',
-            backdropFilter: 'blur(18px)',
-            border: '2px solid rgba(212, 175, 55, 0.4)',
-            borderRadius: '0',
-            padding: '14px 24px'
-        }
-
-        if (isSyria) return {
-            /* SYRIA LIBERATION STYLE - PREMIUM REDESIGN */
-            background: 'linear-gradient(110deg, #000000 0%, #0a1f0a 60%, #002914 100%)', // Deep Dark Green to Black
-            backdropFilter: 'blur(12px)',
-            // Flag Borders:
-            borderTop: '2px solid rgba(255,255,255,0.15)',
-            borderBottom: '2px solid rgba(255,255,255,0.15)',
-            borderRight: '6px solid #007A3D', // Strong Green Stripe
-            borderLeft: '6px solid #000',     // Strong Black Stripe
-            borderRadius: '6px',
-            padding: '16px 24px',
-            boxShadow: '0 10px 30px rgba(0,0,0,0.6)',
-            position: 'relative',
-            overflow: 'hidden'
-        }
-        // Fallback Standard
-        return {
-            background: 'rgba(255,255,255,0.08)',
-            // backdropFilter: 'blur(15px)', // DISABLED FOR PERFORMANCE
-            border: '1.5px solid rgba(255,255,255,0.15)',
-            borderRadius: '20px',
-            padding: cardPadding,
-            boxShadow: '0 10px 35px rgba(0,0,0,0.3)'
-        }
-    }
-
-    const cardStyles = getCardStyles();
+    const isArabic = language === 'ar'
 
     return (
         <a
@@ -81,113 +40,43 @@ const LinkCard = ({ id, title, url, icon, skin = 'standard' }) => {
             target="_blank"
             rel="noopener noreferrer"
             onClick={handleClick}
-            className={`glass-btn ${isSocial ? 'vogue-card' : ''} ${isSyria ? 'syria-card' : ''}`}
-            style={{
-                display: 'flex',
-                alignItems: 'center',
-                marginBottom: marginBetween,
-                width: '100%',
-                transition: 'all 0.4s cubic-bezier(0.19, 1, 0.22, 1)',
-                textDecoration: 'none',
-                ...cardStyles
-            }}
+            className={`group relative flex items-center justify-between w-full mb-5 p-2 ${isArabic ? 'pr-4 pl-2' : 'pl-4 pr-2'} backdrop-blur-xl transition-all ease-out overflow-hidden ${theme?.link?.wrapper || 'bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 rounded-full shadow-lg'}`}
+            style={{ textDecoration: 'none' }}
         >
-            {/* SYRIA DECORATION: 3 RED STARS + ANIMATION */}
-            {isSyria && (
-                <>
-                    {/* Background Texture Overlay */}
-                    <div style={{
-                        position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-                        backgroundImage: 'radial-gradient(circle at 80% 20%, rgba(228, 49, 43, 0.08) 0%, transparent 25%)', // Subtle Red glow
-                        zIndex: 0, pointerEvents: 'none'
-                    }} />
+            {/* Subtle inner glow on hover */}
+            <div className={`absolute inset-0 bg-gradient-to-r ${isArabic ? 'from-transparent via-white/5 to-transparent translate-x-full group-hover:-translate-x-full' : 'from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full'} transition-transform duration-1000 ease-in-out`} />
 
-                    {/* Stars that glow on hover */}
-                    <div className="syria-stars" style={{
-                        position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-                        display: 'flex', gap: '15px', zIndex: 0, pointerEvents: 'none'
-                    }}>
-                        <div style={{ color: '#E4312b', fontSize: '1.8rem', opacity: 0.3, transition: 'all 0.3s' }}>★</div>
-                        <div style={{ color: '#E4312b', fontSize: '2.4rem', opacity: 0.3, transition: 'all 0.3s', marginTop: '-5px' }}>★</div>
-                        <div style={{ color: '#E4312b', fontSize: '1.8rem', opacity: 0.3, transition: 'all 0.3s' }}>★</div>
+            {isArabic ? (
+                /* ARABIC LAYOUT: [ChevronLeft] [TITLE] [ICON] */
+                <>
+                    <div className={`flex justify-center items-center w-10 transition-colors duration-300 ${theme?.link?.platformIcon || 'text-white/50 group-hover:text-white'}`}>
+                        <FaChevronLeft className="transform group-hover:-translate-x-1 transition-transform" />
+                    </div>
+
+                    <span className={`flex-1 text-center transition-all duration-300 z-10 ${theme?.link?.title || 'font-black text-lg text-white group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:to-rose-200'}`} style={{ fontFamily: "'Tajawal', sans-serif" }}>
+                        {getLocalizedTitle(title, language)}
+                    </span>
+
+                    <div className={`link-icon-circle flex-shrink-0 flex items-center justify-center w-12 h-12 border shadow-inner transition-all duration-300 z-10 ${theme?.iconStyle || 'rounded-full bg-white/10 border-white/20'} ${theme?.link?.icon || 'text-white group-hover:bg-white group-hover:text-black group-hover:border-white'}`}>
+                        {icon}
+                    </div>
+                </>
+            ) : (
+                /* ENGLISH LAYOUT: [ICON] [TITLE] [ChevronRight] */
+                <>
+                    <div className={`link-icon-circle flex-shrink-0 flex items-center justify-center w-12 h-12 border shadow-inner transition-all duration-300 z-10 ${theme?.iconStyle || 'rounded-full bg-white/10 border-white/20'} ${theme?.link?.icon || 'text-white group-hover:bg-white group-hover:text-black group-hover:border-white'}`}>
+                        {icon}
+                    </div>
+
+                    <span className={`flex-1 text-center transition-all duration-300 z-10 ${theme?.link?.title || 'font-black text-lg tracking-wider text-white group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:to-rose-200'}`} style={{ fontFamily: theme?.font || "'Outfit', sans-serif" }}>
+                        {getLocalizedTitle(title, language)}
+                    </span>
+
+                    <div className={`flex justify-center items-center w-10 transition-colors duration-300 ${theme?.link?.platformIcon || 'text-white/50 group-hover:text-white'}`}>
+                        <FaChevronRight className="transform group-hover:translate-x-1 transition-transform" />
                     </div>
                 </>
             )}
-
-            {language === 'ar' ? (
-                /* STRICT ARABIC LAYOUT: [Chevron] [TEXT CENTERED] [ICON] */
-                <div style={{ display: 'flex', alignItems: 'center', width: '100%', justifyContent: 'space-between', zIndex: 1, position: 'relative' }}>
-                    <div style={{ opacity: 0.8, fontSize: '1.2rem', color: '#fff', width: '40px', display: 'flex', justifyContent: 'center' }}>
-                        <FaChevronLeft />
-                    </div>
-
-                    <span style={{
-                        fontWeight: '950',
-                        fontSize: fontSize,
-                        flex: 1,
-                        color: '#fff',
-                        fontFamily: isSocial || isLuxury ? "'Playfair Display', serif" : 'inherit',
-                        textAlign: 'center',
-                        letterSpacing: (isSocial) ? '2px' : '1px',
-                        textTransform: (isSocial || isGaming) ? 'uppercase' : 'none',
-                    }}>
-                        {getLocalizedTitle(title, language)}
-                    </span>
-
-                    <div style={{
-                        width: iconSide, height: iconSide, borderRadius: isSocial ? '0' : '16px',
-                        background: isSocial ? '#fff' : 'rgba(255,255,255,0.15)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.6rem', flexShrink: 0,
-                        border: '2px solid #fff', color: isSocial ? '#000' : '#fff',
-                    }}>
-                        {icon}
-                    </div>
-                </div>
-            ) : (
-                /* STRICT ENGLISH LAYOUT */
-                <div style={{ display: 'flex', alignItems: 'center', width: '100%', justifyContent: 'space-between', zIndex: 1, position: 'relative' }}>
-                    <div style={{
-                        width: iconSide, height: iconSide, borderRadius: isSocial ? '0' : '16px',
-                        background: isSocial ? '#fff' : 'rgba(255,255,255,0.15)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.6rem', flexShrink: 0,
-                        border: '2px solid #fff', color: isSocial ? '#000' : '#fff',
-                    }}>
-                        {icon}
-                    </div>
-
-                    <span style={{
-                        fontWeight: '950',
-                        fontSize: fontSize,
-                        flex: 1,
-                        color: '#fff',
-                        fontFamily: isSocial || isLuxury ? "'Playfair Display', serif" : 'inherit',
-                        textAlign: 'center',
-                        letterSpacing: (isSocial) ? '2px' : '2px',
-                        textTransform: (isSocial || isGaming) ? 'uppercase' : 'none',
-                    }}>
-                        {getLocalizedTitle(title, language)}
-                    </span>
-
-                    <div style={{ opacity: 0.8, fontSize: '1.2rem', color: '#fff', width: '40px', display: 'flex', justifyContent: 'center' }}>
-                        <FaChevronRight />
-                    </div>
-                </div>
-            )}
-
-            <style>{`
-                .vogue-card:hover { background: #fff !important; transform: scale(1.02) !important; border-color: #000 !important; }
-                .vogue-card:hover span, .vogue-card:hover div { color: #000 !important; }
-                
-                .syria-card:hover {
-                    box-shadow: 0 0 25px rgba(0, 122, 61, 0.5), inset 0 0 15px rgba(0,0,0,0.8) !important;
-                    transform: translateY(-2px) scale(1.01) !important;
-                    border-right-color: #E4312b !important; /* Change green stripe to red on hover */
-                }
-                .syria-card:hover .syria-stars div {
-                    opacity: 0.8 !important; /* Stars light up */
-                    text-shadow: 0 0 10px #E4312b;
-                }
-            `}</style>
         </a>
     )
 }

@@ -2,8 +2,9 @@ import React, { useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useNavigate, Link } from 'react-router-dom'
 import { useLanguage } from '../contexts/LanguageContext'
-import { FaBolt, FaLock } from 'react-icons/fa'
+import { FaBolt, FaLock, FaCheckCircle, FaExclamationTriangle } from 'react-icons/fa'
 import LanguageSwitcher from '../components/LanguageSwitcher'
+import { motion } from 'framer-motion'
 
 const ResetPassword = () => {
     const [password, setPassword] = useState('')
@@ -13,6 +14,7 @@ const ResetPassword = () => {
     const [message, setMessage] = useState(null)
     const navigate = useNavigate()
     const { t, language } = useLanguage()
+    const isRtl = language === 'ar'
 
     const handleReset = async (e) => {
         e.preventDefault()
@@ -43,128 +45,112 @@ const ResetPassword = () => {
     }
 
     return (
-        <div style={{
-            minHeight: '100vh',
-            width: '100%',
-            background: '#05050c',
-            color: '#fff',
-            fontFamily: language === 'ar' ? 'Tajawal, sans-serif' : 'Outfit, sans-serif',
-            direction: language === 'ar' ? 'rtl' : 'ltr',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            padding: '60px 20px'
-        }}>
-            {/* Background Glows */}
-            <div style={{ position: 'fixed', top: '20%', left: '50%', transform: 'translateX(-50%)', width: '300px', height: '300px', background: 'var(--accent-color)', filter: 'blur(150px)', opacity: 0.1, pointerEvents: 'none' }}></div>
+        <div className={`min-h-screen w-full bg-[#030308] text-white overflow-hidden flex flex-col items-center justify-center relative ${isRtl ? 'rtl' : 'ltr'}`} style={{ fontFamily: isRtl ? 'Tajawal, sans-serif' : 'Outfit, sans-serif' }}>
+            {/* Background Blobs */}
+            <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+                <motion.div 
+                    animate={{ scale: [1, 1.2, 1], rotate: [0, 90, 0] }}
+                    transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                    className="absolute top-[-20%] left-[-10%] w-[50%] h-[60%] rounded-full bg-purple-600/20 blur-[120px]" 
+                />
+                <motion.div 
+                    animate={{ scale: [1, 1.5, 1], rotate: [0, -90, 0] }}
+                    transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+                    className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] rounded-full bg-rose-600/10 blur-[120px]" 
+                />
+            </div>
 
-            <div style={{ position: 'absolute', top: '20px', right: language === 'ar' ? 'auto' : '20px', left: language === 'ar' ? '20px' : 'auto', display: 'flex', gap: '20px', alignItems: 'center', zIndex: 10 }}>
+            <div className="absolute top-0 left-0 w-full p-6 flex justify-between items-center z-20">
                 <LanguageSwitcher inline />
-                <Link to="/login" style={{ color: 'rgba(255,255,255,0.5)', textDecoration: 'none', fontWeight: '600', fontSize: '0.9rem' }}>
+                <Link to="/login" className="flex items-center gap-2 text-white/60 hover:text-white transition-colors text-sm font-semibold">
                     {t.backToLogin || 'Back to Login'}
                 </Link>
             </div>
 
-            <div style={{
-                maxWidth: '450px',
-                width: '100%',
-                margin: 'auto',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '30px',
-                position: 'relative',
-                zIndex: 2
-            }}>
-                {/* BRANDING SECTION */}
-                <div style={{ textAlign: 'center' }}>
-                    <div style={{
-                        width: '75px', height: '75px', borderRadius: '22px', background: 'var(--accent-gradient)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px',
-                        boxShadow: '0 10px 30px rgba(255,45,85,0.3)',
-                    }}>
-                        <FaBolt size={38} color="#fff" />
+            <div className="w-full max-w-md px-6 relative z-10">
+                <motion.div 
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6 }}
+                    className="text-center mb-10"
+                >
+                    <div className="w-20 h-20 mx-auto rounded-2xl bg-gradient-to-br from-rose-500 to-purple-600 flex items-center justify-center shadow-lg shadow-rose-500/30 mb-6">
+                        <FaBolt size={36} color="#fff" />
                     </div>
-                    <h1 style={{ fontSize: '3rem', fontWeight: '900', marginBottom: '12px', letterSpacing: '-1.5px' }}>SY Link</h1>
-                    <h2 style={{ fontSize: '1.8rem', fontWeight: '800', margin: 0 }}>
-                        {language === 'ar' ? 'تعيين كلمة مرور جديدة' : 'Set New Password'}
+                    <h1 className="text-4xl font-black mb-3 bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70 tracking-tight">
+                        SY Link
+                    </h1>
+                    <h2 className="text-white/60 text-lg md:text-xl font-bold">
+                        {isRtl ? 'تعيين كلمة مرور جديدة' : 'Set New Password'}
                     </h2>
-                </div>
+                </motion.div>
 
-                {/* FORM CARD */}
-                <div style={{
-                    background: 'rgba(255,255,255,0.03)',
-                    padding: '40px 30px',
-                    borderRadius: '28px',
-                    border: '1px solid rgba(255,255,255,0.07)',
-                    backdropFilter: 'blur(15px)',
-                    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
-                }}>
-                    {error && <div style={{
-                        background: 'rgba(255,50,50,0.1)', color: '#ff4d4d', padding: '15px', borderRadius: '12px',
-                        marginBottom: '20px', border: '1px solid rgba(255,77,77,0.2)', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '10px'
-                    }}>
-                        <FaBolt size={14} /> {error}
-                    </div>}
+                <motion.div
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: 0.2 }}
+                    className="glass-panel p-8"
+                >
+                    {error && (
+                        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm flex items-start gap-3">
+                            <FaExclamationTriangle className="mt-1 flex-shrink-0" />
+                            <span>{error}</span>
+                        </motion.div>
+                    )}
 
-                    {message && <div style={{
-                        background: 'rgba(74,222,128,0.1)', color: '#4ade80', padding: '15px', borderRadius: '12px',
-                        marginBottom: '20px', border: '1px solid rgba(74,222,128,0.2)', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '10px'
-                    }}>
-                        <FaBolt size={14} /> {message}
-                    </div>}
+                    {message && (
+                        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="mb-6 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm flex items-start gap-3">
+                            <FaCheckCircle className="mt-1 flex-shrink-0" />
+                            <span>{message}</span>
+                        </motion.div>
+                    )}
 
-                    <form onSubmit={handleReset} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-                        <div className="input-group">
-                            <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.8rem', fontWeight: '700', color: 'rgba(255,255,255,0.6)' }}>
-                                {t.newPasswordPlaceholder || 'New Password'}
-                            </label>
-                            <div style={{ position: 'relative' }}>
-                                <FaLock style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', [language === 'ar' ? 'right' : 'left']: '16px', color: 'rgba(255,255,255,0.2)' }} />
+                    <form onSubmit={handleReset} className="space-y-5">
+                        <div>
+                            <label className="block text-xs font-bold text-white/50 mb-2 uppercase tracking-wider">{t.newPasswordPlaceholder || 'New Password'}</label>
+                            <div className="relative group">
+                                <FaLock className={`absolute top-1/2 -translate-y-1/2 ${isRtl ? 'right-4' : 'left-4'} text-white/30 group-focus-within:text-rose-400 transition-colors`} />
                                 <input
                                     type="password"
                                     placeholder="••••••••"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    style={{
-                                        width: '100%', padding: '14px 48px', borderRadius: '14px', background: 'rgba(255,255,255,0.04)',
-                                        border: '1px solid rgba(255,255,255,0.1)', color: '#fff', fontSize: '1rem',
-                                        outline: 'none'
-                                    }}
+                                    className={`w-full bg-white/5 border border-white/10 rounded-xl py-3 ${isRtl ? 'pr-12 pl-4' : 'pl-12 pr-4'} text-white placeholder:text-white/20 focus:outline-none focus:border-rose-500/50 focus:bg-white/10 transition-all`}
                                     required
                                 />
                             </div>
                         </div>
 
-                        <div className="input-group">
-                            <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.8rem', fontWeight: '700', color: 'rgba(255,255,255,0.6)' }}>
-                                {t.confirmPasswordPlaceholder || 'Confirm New Password'}
-                            </label>
-                            <div style={{ position: 'relative' }}>
-                                <FaLock style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', [language === 'ar' ? 'right' : 'left']: '16px', color: 'rgba(255,255,255,0.2)' }} />
+                        <div>
+                            <label className="block text-xs font-bold text-white/50 mb-2 uppercase tracking-wider">{t.confirmPasswordPlaceholder || 'Confirm New Password'}</label>
+                            <div className="relative group">
+                                <FaLock className={`absolute top-1/2 -translate-y-1/2 ${isRtl ? 'right-4' : 'left-4'} text-white/30 group-focus-within:text-rose-400 transition-colors`} />
                                 <input
                                     type="password"
                                     placeholder="••••••••"
                                     value={confirmPassword}
                                     onChange={(e) => setConfirmPassword(e.target.value)}
-                                    style={{
-                                        width: '100%', padding: '14px 48px', borderRadius: '14px', background: 'rgba(255,255,255,0.04)',
-                                        border: '1px solid rgba(255,255,255,0.1)', color: '#fff', fontSize: '1rem',
-                                        outline: 'none'
-                                    }}
+                                    className={`w-full bg-white/5 border border-white/10 rounded-xl py-3 ${isRtl ? 'pr-12 pl-4' : 'pl-12 pr-4'} text-white placeholder:text-white/20 focus:outline-none focus:border-rose-500/50 focus:bg-white/10 transition-all`}
                                     required
                                 />
                             </div>
                         </div>
 
-                        <button type="submit" disabled={loading} style={{
-                            padding: '16px', background: 'var(--accent-gradient)', border: 'none', borderRadius: '14px',
-                            color: '#fff', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', marginTop: '10px',
-                            boxShadow: '0 10px 30px rgba(255,45,85,0.3)'
-                        }}>
-                            {loading ? '...' : (t.updatePasswordBtn || 'Update Password')}
-                        </button>
+                        <div className="pt-2">
+                            <button 
+                                type="submit" 
+                                disabled={loading} 
+                                className="w-full py-4 rounded-xl font-bold text-lg flex justify-center items-center gap-2 transition-all shadow-lg bg-gradient-to-r from-rose-500 to-purple-600 text-white hover:scale-[1.02] active:scale-[0.98] shadow-rose-500/25 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {loading ? (
+                                    <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                ) : (
+                                    t.updatePasswordBtn || 'Update Password'
+                                )}
+                            </button>
+                        </div>
                     </form>
-                </div>
+                </motion.div>
             </div>
         </div>
     )

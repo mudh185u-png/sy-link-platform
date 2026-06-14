@@ -2,144 +2,132 @@ import React, { useMemo } from 'react'
 import { motion } from 'framer-motion'
 
 // Generate static particles outside the component to ensure strict purity
-const STATIC_PARTICLES = Array.from({ length: 150 }).map((_, i) => ({
+const STATIC_PARTICLES = Array.from({ length: 50 }).map((_, i) => ({
     id: i,
-    size: Math.random() * 3 + 1,
+    size: Math.random() * 4 + 1,
     left: `${Math.random() * 100}%`,
-    duration: Math.random() * 10 + 15,
-    delay: Math.random() * 10,
-    opacity: Math.random() * 0.5 + 0.1,
-    xDrift: Math.random() * 30 - 15
+    top: `${Math.random() * 100}%`,
+    duration: Math.random() * 20 + 20,
+    delay: Math.random() * -20,
+    opacity: Math.random() * 0.6 + 0.2,
 }));
 
 const AnimatedBackground = ({ type, config, skin }) => {
-    const isGaming = skin === 'gaming';
-    const isLuxury = skin === 'luxury';
-    const isNeon = skin === 'neon';
-    const isMinimal = skin === 'minimal';
-    const isSocial = skin === 'social';
-    const isWinter = skin === 'winter';
+    const settings = typeof config === 'string' ? JSON.parse(config) : (config || {});
+    const theme = type === 'animated' ? (settings.theme || 'nebula') : null;
 
-    const settings = typeof config === 'string' ? JSON.parse(config) : config;
+    // Handle Image/Video background types
+    if (type === 'image' && settings?.url) {
+        return <div style={{ position: 'fixed', inset: 0, backgroundImage: `url(${settings.url})`, backgroundSize: 'cover', backgroundPosition: 'center', zIndex: -2 }} />
+    }
+    if (type === 'video' && settings?.url) {
+        return (
+            <div style={{ position: 'fixed', inset: 0, zIndex: -2, overflow: 'hidden' }}>
+                <video src={settings.url} autoPlay loop muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)' }} />
+            </div>
+        )
+    }
 
-    // Use a slice of the static particles if winter is active
-    const snowParticles = useMemo(() => {
-        if (!isWinter) return [];
-        return STATIC_PARTICLES.slice(0, 100);
-    }, [isWinter]);
-
-    // OPTIMIZATION: On mobile/performance mode, simplify complex backgrounds
-    // For now, we are enforcing strictly lightweight CSS for commonly used types if they are causing lag.
-
-    // Fallback for heavy "animated" type to simple gradient if needed by CSS overrides, 
-    // but here we render the DOM. The parent can control visibility.
+    // Default container for animated backgrounds
     return (
-        <div
-            data-editable-id="site_background"
-            data-editable-type="container"
-            style={{
-                position: 'fixed',
-                inset: 0,
-                zIndex: -1,
-                overflow: 'hidden',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                background: isSocial ? '#000' : (isGaming ? '#020308' : (isWinter ? 'linear-gradient(to bottom, #050a15 0%, #0a1525 100%)' : (isLuxury ? '#080808' : '#08080f'))),
-                pointerEvents: 'none'
-            }}>
-            {/* 
-                    PERFORMANCE HACK:
-                    If 'isWinter', 'isGaming', or 'isSocial' are active, we render them BUT
-                    we must be careful. The user complained about lag.
-                    We will REDUCE the particle count for winter significantly.
-                */}
-            {type === 'image' && settings?.url && (
-                <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${settings.url})`, backgroundSize: 'cover', backgroundPosition: 'center', zIndex: -2 }} />
-            )}
-
-            {/* DARK WINTER SPECIFIC ATMOSPHERE - REDUCED PARTICLES */}
-            {isWinter && (
-                <>
-                    <div style={{
-                        position: 'absolute',
-                        top: 0, left: 0, right: 0, height: '40%',
-                        background: 'radial-gradient(circle at 50% 0%, rgba(20, 40, 70, 0.4) 0%, transparent 70%)',
-                        zIndex: 0
-                    }} />
-                    {/* Render fewer particles (20 instead of 100) */}
-                    {snowParticles.slice(0, 20).map(p => (
+        <div style={{ position: 'fixed', inset: 0, zIndex: -2, overflow: 'hidden', pointerEvents: 'none' }}>
+            
+            {/* 1. MATRIX RAIN */}
+            {theme === 'matrix-rain' && (
+                <div className="w-full h-full bg-[#050a05]">
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,#000000_100%)] z-10"></div>
+                    {STATIC_PARTICLES.map(p => (
                         <motion.div
                             key={p.id}
-                            initial={{ top: '-10%', left: p.left, opacity: 0 }}
-                            animate={{
-                                top: '110%',
-                                opacity: [0, p.opacity, p.opacity, 0],
-                                x: [0, p.xDrift, 0]
-                            }}
-                            transition={{
-                                duration: p.duration,
-                                repeat: Infinity,
-                                delay: p.delay,
-                                ease: "linear"
-                            }}
-                            style={{
-                                position: 'absolute',
-                                width: p.size,
-                                height: p.size,
-                                background: '#fff',
-                                borderRadius: '50%',
-                                filter: 'blur(0px)', // Removed blur for performance
-                                zIndex: 1
-                            }}
+                            animate={{ y: ['-10vh', '110vh'] }}
+                            transition={{ duration: p.duration / 3, repeat: Infinity, ease: "linear", delay: p.delay }}
+                            className="absolute w-[2px] bg-gradient-to-b from-transparent via-[#00ff41] to-[#00ff41] rounded-full shadow-[0_0_10px_#00ff41]"
+                            style={{ left: p.left, top: '-10vh', height: `${p.size * 20}px`, opacity: p.opacity }}
                         />
                     ))}
-                </>
+                </div>
             )}
 
-            {/* VOGUE: REDUCED ANIMATION COMPLEXITY */}
-            {isSocial && (
-                <>
-                    <div style={{
-                        position: 'absolute',
-                        top: '50%', left: '50%', width: '100vw', height: '100vh',
-                        background: 'radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 60%)',
-                        transform: 'translate(-50%, -50%)',
-                        zIndex: 1
-                    }} />
-                    {/* Removed the heavy animated overlay and noise filter */}
-                </>
+            {/* 2. ABYSSAL OCEAN */}
+            {theme === 'abyssal-ocean' && (
+                <div className="w-full h-full bg-[#000b18]">
+                    <div className="absolute inset-0 bg-gradient-to-b from-[#001220] to-[#00040a]"></div>
+                    <motion.div 
+                        animate={{ y: [-20, 20, -20], x: [-10, 10, -10] }}
+                        transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
+                        className="absolute top-1/4 left-1/4 w-[60vw] h-[60vw] bg-teal-900/20 rounded-full blur-[100px]"
+                    />
+                    <motion.div 
+                        animate={{ y: [20, -20, 20], x: [10, -10, 10] }}
+                        transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
+                        className="absolute bottom-1/4 right-1/4 w-[80vw] h-[40vw] bg-cyan-900/20 rounded-full blur-[120px]"
+                    />
+                    {/* Bubbles */}
+                    {STATIC_PARTICLES.slice(0, 20).map(p => (
+                        <motion.div
+                            key={p.id}
+                            animate={{ y: ['100vh', '-10vh'], x: [0, Math.random() * 50 - 25, 0] }}
+                            transition={{ duration: p.duration / 2, repeat: Infinity, ease: "easeInOut", delay: p.delay }}
+                            className="absolute w-2 h-2 border border-teal-500/30 rounded-full"
+                            style={{ left: p.left, top: '100vh', opacity: p.opacity }}
+                        />
+                    ))}
+                </div>
             )}
 
-            {/* GAMING: STATIC GRID INSTEAD OF ANIMATED */}
-            {isGaming && (
-                <>
-                    <div style={{
-                        position: 'absolute',
-                        inset: 0,
-                        backgroundImage: `linear-gradient(rgba(0, 242, 246, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 242, 246, 0.05) 1px, transparent 1px)`,
-                        backgroundSize: '80px 80px',
-                        backgroundPosition: 'center center',
-                        perspective: '1200px',
-                        transform: 'rotateX(60deg) translateY(-20%) scale(2.5)',
-                        opacity: 0.3
-                    }} />
-                    {/* Removed the scanning line animation */}
-                </>
+            {/* 3. STELLAR DUST */}
+            {theme === 'stellar-dust' && (
+                <div className="w-full h-full bg-[#030005]">
+                    <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-indigo-900/20 via-[#030005] to-[#030005]"></div>
+                    <motion.div 
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 100, repeat: Infinity, ease: "linear" }}
+                        className="absolute inset-0"
+                    >
+                        {STATIC_PARTICLES.map(p => (
+                            <motion.div
+                                key={p.id}
+                                animate={{ scale: [1, 1.5, 1], opacity: [p.opacity, p.opacity * 2, p.opacity] }}
+                                transition={{ duration: p.duration / 5, repeat: Infinity, ease: "easeInOut", delay: p.delay }}
+                                className="absolute bg-[#ffb8ff] rounded-full shadow-[0_0_15px_#ffb8ff]"
+                                style={{ left: p.left, top: p.top, width: p.size * 1.5, height: p.size * 1.5 }}
+                            />
+                        ))}
+                    </motion.div>
+                </div>
             )}
 
-            {/* STANDARD BLOBS: REDUCED BLUR RADIUS */}
-            {!isGaming && !isSocial && !isWinter && (
-                <div
-                    style={{
-                        position: 'absolute', top: '15%', left: '15%',
-                        width: '300px', height: '300px',
-                        background: isLuxury ? 'rgba(212, 175, 55, 0.06)' : 'rgba(255, 45, 85, 0.08)',
-                        borderRadius: '50%',
-                        filter: 'blur(60px)' // Reduced from 100px
-                    }}
-                />
+            {/* 4. CRIMSON MOON */}
+            {theme === 'crimson-moon' && (
+                <div className="w-full h-full bg-[#110000]">
+                    <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-red-900/30 rounded-full blur-[120px]"></div>
+                    <motion.div 
+                        animate={{ scale: [1, 1.1, 1], opacity: [0.3, 0.5, 0.3] }}
+                        transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+                        className="absolute bottom-[20%] right-[10%] w-[40vw] h-[40vw] bg-[radial-gradient(circle,_#ff0000_0%,_transparent_70%)] opacity-30 rounded-full blur-[60px]"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#000000] via-transparent to-transparent"></div>
+                    {/* Floating ash */}
+                    {STATIC_PARTICLES.slice(0, 30).map(p => (
+                        <motion.div
+                            key={p.id}
+                            animate={{ y: ['100vh', '-10vh'], x: [0, Math.random() * 100 - 50, 0] }}
+                            transition={{ duration: p.duration, repeat: Infinity, ease: "linear", delay: p.delay }}
+                            className="absolute bg-[#ff4444] rounded-sm blur-[1px]"
+                            style={{ left: p.left, top: '100vh', width: p.size, height: p.size, opacity: p.opacity * 0.5 }}
+                        />
+                    ))}
+                </div>
             )}
+
+            {/* FALLBACK (if theme is unknown but type is animated) */}
+            {type === 'animated' && !['matrix-rain', 'abyssal-ocean', 'stellar-dust', 'crimson-moon'].includes(theme) && (
+                <div className="w-full h-full bg-[#08080f]">
+                    <div className="absolute top-[15%] left-[15%] w-[300px] h-[300px] bg-rose-500/10 rounded-full blur-[80px]" />
+                </div>
+            )}
+
         </div>
     )
 }
